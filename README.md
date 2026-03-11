@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# La Tricolor Store
 
-## Getting Started
+Tienda e-commerce para camisetas de la Selección Colombia, construida con `Next.js + Supabase + Wompi (sandbox)` y lista para desplegar en Vercel.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- `Next.js` (App Router, TypeScript, Tailwind CSS)
+- `Supabase` (Auth + Postgres + RLS)
+- `Wompi` (checkout sandbox + webhook)
+- `Vercel` (deploy continuo desde `main`)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 1) Configuración local
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Instala dependencias:
+   - `npm install`
+2. Crea archivo de variables:
+   - `cp .env.example .env.local` (en Windows, copia manual con el explorador o `copy .env.example .env.local`)
+3. Llena variables en `.env.local`:
+   - `NEXT_PUBLIC_APP_URL=http://localhost:3000`
+   - `NEXT_PUBLIC_SUPABASE_URL=...`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY=...`
+   - `SUPABASE_SERVICE_ROLE_KEY=...`
+   - `WOMPI_BASE_URL=https://sandbox.wompi.co/v1`
+   - `WOMPI_CHECKOUT_URL=https://checkout.wompi.co/p/`
+   - `WOMPI_PUBLIC_KEY=...`
+   - `WOMPI_PRIVATE_KEY=...` (reservada para evolución backend)
+   - `WOMPI_INTEGRITY_SECRET=...`
+   - `WOMPI_EVENTS_SECRET=...`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 2) Base de datos Supabase
 
-## Learn More
+1. Abre SQL Editor en Supabase.
+2. Ejecuta `supabase/schema.sql`.
+3. Verifica tablas creadas:
+   - `categories`, `products`, `product_variants`, `orders`, `order_items`, `profiles`
+4. Verifica datos semilla:
+   - 3 productos de camisetas con variantes iniciales.
 
-To learn more about Next.js, take a look at the following resources:
+## 3) Correr proyecto
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `npm run dev`
+- Abre `http://localhost:3000`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 4) Flujo funcional MVP
 
-## Deploy on Vercel
+- Catálogo cargado desde Supabase (editable).
+- Carrito multi-ítem en frontend.
+- Login/registro con Supabase Auth.
+- Checkout crea orden (`orders` + `order_items`) y redirige a Wompi sandbox.
+- Webhook actualiza estado de orden en Supabase.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 5) Endpoints
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `POST /api/checkout/wompi`
+  - Crea orden y genera URL de checkout Wompi.
+- `POST /api/wompi/webhook`
+  - Recibe eventos `transaction.updated` y actualiza `orders.status`.
+
+## 6) Subir a GitHub (repo nuevo)
+
+1. Crea repo nuevo en GitHub: `cafeteros-shop`.
+2. Comandos:
+   - `git add .`
+   - `git commit -m "feat: initial storefront with supabase and wompi sandbox"`
+   - `git branch -M main`
+   - `git remote add origin https://github.com/TU_USUARIO/cafeteros-shop.git`
+   - `git push -u origin main`
+
+## 7) Deploy en Vercel
+
+1. Importa el repo en Vercel.
+2. Configura todas las variables de entorno de `.env.example` en Vercel (Preview + Production).
+3. Deploy automático desde `main`.
+4. Configura webhook de Wompi:
+   - `https://TU_DOMINIO/api/wompi/webhook`
+
+## 8) Paso a producción Wompi
+
+Revisa el checklist:
+
+- `docs/wompi-production-checklist.md`
