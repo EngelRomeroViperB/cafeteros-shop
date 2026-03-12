@@ -30,45 +30,52 @@ export async function getFeaturedProducts(): Promise<Product[]> {
     return fallbackProducts;
   }
 
-  const supabase = createServerSupabaseClient();
+  try {
+    const supabase = createServerSupabaseClient();
 
-  const { data: products, error } = await supabase
-    .from("products")
-    .select("id, slug, name, description, badge, image_url, is_featured, is_active")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
+    const { data: products, error } = await supabase
+      .from("products")
+      .select("id, slug, name, description, badge, image_url, is_featured, is_active")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    throw new Error(`Failed to fetch products: ${error.message}`);
-  }
+    if (error) {
+      console.error(`Failed to fetch products: ${error.message}`);
+      return fallbackProducts;
+    }
 
-  if (!products || products.length === 0) {
+    if (!products || products.length === 0) {
+      return fallbackProducts;
+    }
+
+    const productIds = products.map((product) => product.id);
+
+    const { data: variants, error: variantsError } = await supabase
+      .from("product_variants")
+      .select("id, product_id, size, color, price_cop, stock, is_active")
+      .in("product_id", productIds)
+      .eq("is_active", true)
+      .order("price_cop", { ascending: true });
+
+    if (variantsError) {
+      console.error(`Failed to fetch variants: ${variantsError.message}`);
+      return fallbackProducts;
+    }
+
+    const variantsByProduct = new Map<string, ProductVariant[]>();
+
+    (variants ?? []).forEach((variant) => {
+      const current = variantsByProduct.get(variant.product_id) ?? [];
+      current.push(variant as ProductVariant);
+      variantsByProduct.set(variant.product_id, current);
+    });
+
+    return products.map((product) => ({
+      ...(product as Omit<Product, "variants">),
+      variants: variantsByProduct.get(product.id) ?? [],
+    }));
+  } catch (err) {
+    console.error("Supabase connection failed, using fallback products:", err);
     return fallbackProducts;
   }
-
-  const productIds = products.map((product) => product.id);
-
-  const { data: variants, error: variantsError } = await supabase
-    .from("product_variants")
-    .select("id, product_id, size, color, price_cop, stock, is_active")
-    .in("product_id", productIds)
-    .eq("is_active", true)
-    .order("price_cop", { ascending: true });
-
-  if (variantsError) {
-    throw new Error(`Failed to fetch variants: ${variantsError.message}`);
-  }
-
-  const variantsByProduct = new Map<string, ProductVariant[]>();
-
-  (variants ?? []).forEach((variant) => {
-    const current = variantsByProduct.get(variant.product_id) ?? [];
-    current.push(variant as ProductVariant);
-    variantsByProduct.set(variant.product_id, current);
-  });
-
-  return products.map((product) => ({
-    ...(product as Omit<Product, "variants">),
-    variants: variantsByProduct.get(product.id) ?? [],
-  }));
 }

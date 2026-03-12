@@ -550,7 +550,11 @@ export default function Storefront({ products }: Props) {
                         )}
                         
                         <div className={`aspect-square rounded-xl mb-6 flex items-center justify-center overflow-hidden relative group-hover:scale-[1.02] transition-transform ${isDark ? "bg-gray-900" : "bg-gray-100"}`}>
-                          <ShoppingBag className={`w-32 h-32 drop-shadow-md ${isDark ? "text-gray-800 border-[1px] border-gray-700/50 fill-gray-800 rounded-md" : "text-col-yellow"}`} />
+                          {product.image_url ? (
+                            <img src={product.image_url} alt={product.name} className="w-3/4 h-3/4 object-contain drop-shadow-md" />
+                          ) : (
+                            <ShoppingBag className={`w-32 h-32 drop-shadow-md ${isDark ? "text-gray-800 border-[1px] border-gray-700/50 fill-gray-800 rounded-md" : "text-col-yellow"}`} />
+                          )}
                         </div>
                         <div className="space-y-2">
                           <div className="flex justify-between items-start">
@@ -604,7 +608,11 @@ export default function Storefront({ products }: Props) {
               <div className="w-full lg:w-1/2">
                 <div className="bg-gray-100 rounded-3xl aspect-[4/5] flex items-center justify-center relative shadow-inner overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 to-white opacity-50"></div>
-                  <ShoppingBag className="w-64 h-64 text-col-yellow drop-shadow-2xl relative z-10 transform transition-transform duration-700 hover:scale-125" />
+                  {activeProduct.image_url ? (
+                    <img src={activeProduct.image_url} alt={activeProduct.name} className="w-3/4 h-3/4 object-contain drop-shadow-2xl relative z-10 transform transition-transform duration-700 hover:scale-125" />
+                  ) : (
+                    <ShoppingBag className="w-64 h-64 text-col-yellow drop-shadow-2xl relative z-10 transform transition-transform duration-700 hover:scale-125" />
+                  )}
                   {activeProduct.badge && (
                     <div className="absolute top-6 left-6 bg-col-red text-white text-xs font-bold px-4 py-1.5 rounded-full z-20 uppercase tracking-wider">
                       {activeProduct.badge}
@@ -612,8 +620,12 @@ export default function Storefront({ products }: Props) {
                   )}
                 </div>
                 <div className="grid grid-cols-4 gap-4 mt-4">
-                  <div className="bg-gray-100 rounded-xl aspect-square flex items-center justify-center border-2 border-col-blue cursor-pointer">
-                    <ShoppingBag className="w-10 h-10 text-col-yellow" />
+                  <div className="bg-gray-100 rounded-xl aspect-square flex items-center justify-center border-2 border-col-blue cursor-pointer overflow-hidden">
+                    {activeProduct.image_url ? (
+                      <img src={activeProduct.image_url} alt={activeProduct.name} className="w-3/4 h-3/4 object-contain" />
+                    ) : (
+                      <ShoppingBag className="w-10 h-10 text-col-yellow" />
+                    )}
                   </div>
                   <div className="bg-gray-100 rounded-xl aspect-square flex items-center justify-center border border-gray-200 cursor-pointer hover:border-gray-400">
                     <span className="text-xs font-bold text-gray-400">Dorso</span>
