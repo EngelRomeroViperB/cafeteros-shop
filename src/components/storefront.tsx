@@ -380,35 +380,34 @@ export default function Storefront({ products }: Props) {
             {/* Hero Section */}
             <section
               id="inicio"
-              className="relative pt-20 pb-12 lg:pt-[120px] lg:pb-[90px] overflow-hidden hero-pattern min-h-screen flex items-center"
+              className="relative pt-20 pb-10 lg:pt-28 lg:pb-12 overflow-hidden hero-pattern flex items-center min-h-[75vh]"
             >
               <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-                <div className="absolute -top-40 -right-40 w-96 h-96 bg-col-red rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-                <div className="absolute top-40 -left-40 w-96 h-96 bg-col-yellow rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-                <div className="absolute -bottom-40 left-20 w-96 h-96 bg-col-blue rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+                <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-col-red mix-blend-multiply filter blur-[80px] opacity-40 animate-blob"></div>
+                <div className="absolute top-[20%] left-[-10%] w-[30%] h-[30%] rounded-full bg-col-blue mix-blend-multiply filter blur-[80px] opacity-40 animate-blob animation-delay-2000"></div>
+                <div className="absolute bottom-[-10%] left-[20%] w-[35%] h-[35%] rounded-full bg-col-yellow mix-blend-multiply filter blur-[80px] opacity-30 animate-blob animation-delay-4000"></div>
               </div>
 
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
-                <div className="flex flex-col lg:flex-row items-center gap-12">
-                  {/* Texto Hero */}
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
                   <div className="w-full lg:w-1/2 text-center lg:text-left pt-10 lg:pt-0">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm mb-6">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm mb-4">
                       <span className="w-2 h-2 rounded-full bg-col-yellow animate-pulse"></span>
-                      <span className="text-col-yellow text-sm font-semibold uppercase tracking-wider">
+                      <span className="text-col-yellow text-xs font-semibold uppercase tracking-wider">
                         Edición Oficial 2026
                       </span>
                     </div>
-                    <h1 className="font-display text-5xl lg:text-7xl font-black text-white leading-tight mb-6">
+                    <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-black text-white leading-tight mb-4">
                       NUESTRA PIEL,<br />
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-col-yellow via-yellow-300 to-col-yellow">
                         NUESTRO ORGULLO.
                       </span>
                     </h1>
-                    <p className="text-lg lg:text-xl text-gray-300 mb-8 max-w-2xl mx-auto lg:mx-0">
+                    <p className="text-sm md:text-base text-gray-300 mb-6 max-w-lg mx-auto lg:mx-0">
                       Presentamos la nueva armadura de la Selección Colombia. Diseñada con tecnología de punta y
                       llevando en cada hilo el corazón de 50 millones de colombianos.
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
                       <button
                         onClick={() => {
                           if (activeProduct?.id) {
@@ -416,24 +415,23 @@ export default function Storefront({ products }: Props) {
                           }
                           navigate("product");
                         }}
-                        className="bg-col-yellow text-col-blue px-8 py-4 rounded-full font-bold text-lg hover:bg-yellow-300 hover:scale-105 transition-all shadow-[0_0_20px_rgba(252,209,22,0.4)] flex items-center justify-center gap-2"
+                        className="bg-col-yellow text-col-blue px-5 py-2.5 rounded-full font-bold text-sm hover:bg-yellow-300 hover:scale-105 transition-all shadow-[0_0_15px_rgba(252,209,22,0.4)] flex items-center justify-center gap-2"
                       >
-                        <ShoppingBag className="w-5 h-5" />
+                        <ShoppingBag className="w-4 h-4" />
                         Comprar Ahora
                       </button>
                       <button
                         onClick={() => goHomeAndScroll("detalles")}
-                        className="px-8 py-4 rounded-full font-bold text-lg text-white border-2 border-white/30 hover:border-white hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                        className="px-5 py-2.5 rounded-full font-bold text-sm text-white border-2 border-white/30 hover:border-white hover:bg-white/10 transition-all flex items-center justify-center gap-2"
                       >
                         Ver Detalles
-                        <ArrowDown className="w-5 h-5" />
+                        <ArrowDown className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
-
-                  {/* Imagen Destacada */}
-                  <div
-                    className="w-full lg:w-1/2 relative cursor-pointer"
+                  
+                  <div 
+                    className="w-full lg:w-1/2 flex justify-center cursor-pointer relative"
                     onClick={() => {
                       if (activeProduct?.id) {
                         setActiveProductId(activeProduct.id);
@@ -441,19 +439,23 @@ export default function Storefront({ products }: Props) {
                       navigate("product");
                     }}
                   >
-                    <div className="relative w-full max-w-md mx-auto aspect-[4/5] bg-gradient-to-tr from-gray-800 to-gray-700 rounded-3xl p-8 shadow-2xl border border-gray-600/50 flex flex-col items-center justify-center transform lg:rotate-2 hover:rotate-0 hover:scale-105 transition-all duration-500 overflow-hidden group">
-                      <div className="absolute top-4 right-4 bg-col-yellow text-col-blue text-xs font-bold px-3 py-1 rounded-full z-20 shadow-md">
+                    <div className="relative w-full max-w-[240px] mx-auto aspect-[4/5] bg-gradient-to-tr from-gray-800 to-gray-700 rounded-2xl p-5 shadow-2xl border border-gray-600/50 flex flex-col items-center justify-center transform lg:rotate-2 hover:rotate-0 hover:scale-105 transition-all duration-500 overflow-hidden group">
+                      <div className="absolute top-3 right-3 bg-col-yellow text-col-blue text-[10px] font-bold px-2 py-0.5 rounded-full z-20 shadow-md">
                         Clic para ver
                       </div>
                       <div className="relative z-10 w-full flex-1 flex flex-col items-center justify-center transition-transform duration-500 group-hover:-translate-y-2">
-                        <div className="relative w-64 h-72">
-                          <ShoppingBag className="w-full h-full text-col-yellow drop-shadow-2xl" strokeWidth={1.5} />
+                        <div className="relative w-32 h-40 flex items-center justify-center">
+                          {activeProduct?.image_url ? (
+                            <img src={activeProduct.image_url} alt={activeProduct.name} className="w-full h-full object-contain drop-shadow-2xl" />
+                          ) : (
+                            <ShoppingBag className="w-full h-full text-col-yellow drop-shadow-2xl" strokeWidth={1.5} />
+                          )}
                         </div>
                       </div>
                       <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-50"></div>
                     </div>
-                    <div className="absolute -top-6 -right-6 w-24 h-24 bg-col-red rounded-full mix-blend-multiply opacity-50 blur-xl"></div>
-                    <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-col-blue rounded-full mix-blend-multiply opacity-50 blur-xl"></div>
+                    <div className="absolute -top-4 -right-4 w-16 h-16 bg-col-red rounded-full mix-blend-multiply opacity-50 blur-xl"></div>
+                    <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-col-blue rounded-full mix-blend-multiply opacity-50 blur-xl"></div>
                   </div>
                 </div>
               </div>
