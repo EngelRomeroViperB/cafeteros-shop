@@ -8,6 +8,8 @@ import {
   ChevronRight,
   Leaf,
   Lock,
+  LogOut,
+  Menu,
   Minus,
   Plus,
   ShieldCheck,
@@ -16,6 +18,7 @@ import {
   Trash2,
   User,
   Wind,
+  X,
 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import type { CartItem, Product } from "@/types/store";
@@ -42,17 +45,25 @@ function getStartingVariant(product: Product) {
 
 export default function Storefront({ products }: Props) {
   const [view, setView] = useState<ViewName>("home");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [toast, setToast] = useState<string>("");
   const [activeProductId, setActiveProductId] = useState<string | null>(products[0]?.id ?? null);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(products[0]?.variants[0]?.id ?? null);
+  const [productQty, setProductQty] = useState(1);
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [authBusy, setAuthBusy] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
 
   const activeProduct = useMemo(
     () => products.find((product) => product.id === activeProductId) ?? products[0] ?? null,
     [activeProductId, products],
+  );
+  const activeVariant = useMemo(
+    () => activeProduct?.variants.find((variant) => variant.id === selectedVariantId) ?? activeProduct?.variants[0] ?? null,
+    [activeProduct, selectedVariantId],
   );
 
   const totalItems = useMemo(() => cart.reduce((sum, item) => sum + item.qty, 0), [cart]);
@@ -65,11 +76,19 @@ export default function Storefront({ products }: Props) {
     }
 
     if (supabase) {
-      supabase.auth.getUser().then(({ data }) => {
-        if (data.user?.email) {
-          setUserEmail(data.user.email);
-        }
+      supabase.auth.getSession().then(({ data }) => {
+        setUserEmail(data.session?.user.email ?? null);
       });
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUserEmail(session?.user.email ?? null);
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
     }
   }, []);
 
@@ -85,8 +104,35 @@ export default function Storefront({ products }: Props) {
     return () => clearTimeout(timeout);
   }, [toast]);
 
-  const addToCart = (product: Product) => {
-    const variant = getStartingVariant(product);
+  useEffect(() => {
+    if (!activeProduct) {
+      return;
+    }
+
+    setSelectedVariantId(activeProduct.variants[0]?.id ?? null);
+    setProductQty(1);
+  }, [activeProductId, activeProduct]);
+
+  const navigate = (nextView: ViewName) => {
+    setView(nextView);
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const goHomeAndScroll = (sectionId: string) => {
+    navigate("home");
+    setTimeout(() => {
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 120);
+  };
+
+  const addToCart = (product: Product, variantId?: string, qty = 1) => {
+    const variant = variantId
+      ? product.variants.find((item) => item.id === variantId) ?? null
+      : getStartingVariant(product);
     if (!variant) {
       setToast("Producto sin variantes disponibles");
       return;
@@ -96,7 +142,7 @@ export default function Storefront({ products }: Props) {
       const index = current.findIndex((item) => item.variantId === variant.id);
       if (index !== -1) {
         const clone = [...current];
-        clone[index] = { ...clone[index], qty: clone[index].qty + 1 };
+        clone[index] = { ...clone[index], qty: clone[index].qty + qty };
         return clone;
       }
       return [
@@ -108,7 +154,7 @@ export default function Storefront({ products }: Props) {
           size: variant.size,
           color: variant.color,
           unitPrice: variant.price_cop,
-          qty: 1,
+          qty,
         },
       ];
     });
@@ -144,19 +190,38 @@ export default function Storefront({ products }: Props) {
       return;
     }
 
+    setAuthBusy(true);
     const response =
       mode === "login"
         ? await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword })
         : await supabase.auth.signUp({ email: authEmail, password: authPassword });
+    setAuthBusy(false);
 
     if (response.error) {
       setToast(response.error.message);
       return;
     }
 
-    setUserEmail(authEmail);
-    setView("cart");
+    setUserEmail(response.data.user?.email ?? authEmail);
+    if (mode === "signup" && !response.data.session) {
+      setToast("Cuenta creada. Revisa tu correo para confirmar.");
+      return;
+    }
+
+    navigate("cart");
     setToast(mode === "login" ? "Sesión iniciada" : "Cuenta creada");
+  };
+
+  const handleLogout = async () => {
+    if (!supabase) {
+      setUserEmail(null);
+      setToast("Sesión cerrada");
+      return;
+    }
+
+    await supabase.auth.signOut();
+    setUserEmail(null);
+    setToast("Sesión cerrada");
   };
 
   const goCheckout = async () => {
@@ -201,7 +266,7 @@ export default function Storefront({ products }: Props) {
     <div className="bg-slate-50 text-slate-800">
       <nav className="fixed inset-x-0 top-0 z-50 border-b border-slate-800 bg-slate-950/95 backdrop-blur-sm">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <button className="flex items-center gap-3" onClick={() => setView("home")}>
+          <button className="flex items-center gap-3" onClick={() => navigate("home")}>
             <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#003893] bg-[#FCD116] font-black text-[#003893]">
               FCF
             </span>
@@ -209,17 +274,17 @@ export default function Storefront({ products }: Props) {
           </button>
 
           <div className="hidden items-center gap-8 md:flex">
-            <button className="text-slate-300 hover:text-[#FCD116]" onClick={() => setView("home")}>Inicio</button>
-            <a className="text-slate-300 hover:text-[#FCD116]" href="#detalles">Innovación</a>
-            <a className="text-slate-300 hover:text-[#FCD116]" href="#tienda">Colección</a>
+            <button className="text-slate-300 hover:text-[#FCD116]" onClick={() => navigate("home")}>Inicio</button>
+            <button className="text-slate-300 hover:text-[#FCD116]" onClick={() => goHomeAndScroll("detalles")}>Innovación</button>
+            <button className="text-slate-300 hover:text-[#FCD116]" onClick={() => goHomeAndScroll("tienda")}>Colección</button>
           </div>
 
           <div className="flex items-center gap-5">
-            <button className="flex items-center gap-2 text-slate-300 hover:text-[#FCD116]" onClick={() => setView("login")}>
+            <button className="flex items-center gap-2 text-slate-300 hover:text-[#FCD116]" onClick={() => navigate("login")}>
               <User className="h-5 w-5" />
-              <span className="hidden text-sm lg:block">{userEmail ? "Cuenta" : "Entrar"}</span>
+              <span className="hidden text-sm lg:block">{userEmail ? "Mi cuenta" : "Entrar"}</span>
             </button>
-            <button className="relative flex items-center gap-2 text-slate-300 hover:text-[#FCD116]" onClick={() => setView("cart")}>
+            <button className="relative flex items-center gap-2 text-slate-300 hover:text-[#FCD116]" onClick={() => navigate("cart")}>
               <ShoppingBag className="h-5 w-5" />
               <span className="hidden text-sm lg:block">Carrito</span>
               <span
@@ -230,8 +295,33 @@ export default function Storefront({ products }: Props) {
                 {totalItems}
               </span>
             </button>
+            <button
+              className="rounded-md p-1.5 text-slate-300 transition hover:bg-slate-800 md:hidden"
+              onClick={() => setMobileMenuOpen((current) => !current)}
+              aria-label="Abrir menú"
+            >
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
           </div>
         </div>
+        {mobileMenuOpen && (
+          <div className="border-t border-slate-800 bg-slate-950 px-4 pb-4 pt-3 md:hidden">
+            <div className="flex flex-col gap-2">
+              <button className="rounded-lg px-3 py-2 text-left text-slate-200 hover:bg-slate-800" onClick={() => navigate("home")}>
+                Inicio
+              </button>
+              <button className="rounded-lg px-3 py-2 text-left text-slate-200 hover:bg-slate-800" onClick={() => goHomeAndScroll("detalles")}>
+                Innovación
+              </button>
+              <button className="rounded-lg px-3 py-2 text-left text-slate-200 hover:bg-slate-800" onClick={() => goHomeAndScroll("tienda")}>
+                Colección
+              </button>
+              <button className="rounded-lg px-3 py-2 text-left text-slate-200 hover:bg-slate-800" onClick={() => navigate("login")}>
+                {userEmail ? "Mi cuenta" : "Entrar"}
+              </button>
+            </div>
+          </div>
+        )}
       </nav>
 
       {view === "home" && (
@@ -256,15 +346,18 @@ export default function Storefront({ products }: Props) {
                       if (activeProduct?.id) {
                         setActiveProductId(activeProduct.id);
                       }
-                      setView("product");
+                      navigate("product");
                     }}
                     className="flex items-center justify-center gap-2 rounded-full bg-[#FCD116] px-8 py-4 font-bold text-[#003893] transition hover:scale-[1.02]"
                   >
                     <ShoppingBag className="h-5 w-5" /> Comprar Ahora
                   </button>
-                  <a href="#detalles" className="flex items-center justify-center gap-2 rounded-full border border-white/30 px-8 py-4 font-bold text-white">
+                  <button
+                    onClick={() => goHomeAndScroll("detalles")}
+                    className="flex items-center justify-center gap-2 rounded-full border border-white/30 px-8 py-4 font-bold text-white"
+                  >
                     Ver Detalles <ArrowDown className="h-5 w-5" />
-                  </a>
+                  </button>
                 </div>
               </div>
               <div className="w-full lg:w-1/2">
@@ -327,7 +420,7 @@ export default function Storefront({ products }: Props) {
                           <button
                             onClick={() => {
                               setActiveProductId(product.id);
-                              setView("product");
+                              navigate("product");
                             }}
                             className="mb-2 w-full rounded-xl border border-slate-300 px-4 py-2 font-medium text-slate-900"
                           >
@@ -354,7 +447,7 @@ export default function Storefront({ products }: Props) {
         <main className="min-h-screen bg-white pb-24 pt-28">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <nav className="mb-8 flex items-center gap-2 text-sm text-slate-500">
-              <button onClick={() => setView("home")} className="hover:text-[#003893]">Inicio</button>
+              <button onClick={() => navigate("home")} className="hover:text-[#003893]">Inicio</button>
               <ChevronRight className="h-4 w-4" />
               <span className="font-medium text-slate-900">{activeProduct.name}</span>
             </nav>
@@ -368,20 +461,49 @@ export default function Storefront({ products }: Props) {
                 <h1 className="text-4xl font-black text-slate-900">{activeProduct.name}</h1>
                 <p className="mt-3 text-slate-600">{activeProduct.description}</p>
                 <p className="mt-4 text-3xl font-bold text-[#003893]">
-                  {activeProduct.variants[0] ? formatCOP(activeProduct.variants[0].price_cop) : "Sin precio"}
+                  {activeVariant ? formatCOP(activeVariant.price_cop) : "Sin precio"}
                 </p>
 
                 <div className="mt-8 space-y-3">
                   {activeProduct.variants.map((variant) => (
-                    <div key={variant.id} className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
+                    <button
+                      key={variant.id}
+                      type="button"
+                      onClick={() => setSelectedVariantId(variant.id)}
+                      className={`flex w-full items-center justify-between rounded-xl border p-4 text-left ${
+                        selectedVariantId === variant.id ? "border-[#003893] bg-blue-50" : "border-slate-200"
+                      }`}
+                    >
                       <span className="font-medium text-slate-900">Talla {variant.size} · {variant.color}</span>
                       <span className="font-bold text-[#003893]">{formatCOP(variant.price_cop)}</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
 
+                <div className="mt-6 flex items-center gap-4">
+                  <div className="inline-flex items-center rounded-xl border border-slate-300">
+                    <button
+                      type="button"
+                      className="p-3 text-slate-600"
+                      onClick={() => setProductQty((current) => Math.max(1, current - 1))}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <span className="w-10 text-center font-bold">{productQty}</span>
+                    <button
+                      type="button"
+                      className="p-3 text-slate-600"
+                      onClick={() => setProductQty((current) => current + 1)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {activeVariant && <span className="text-sm text-slate-500">Stock disponible: {activeVariant.stock}</span>}
+                </div>
+
                 <button
-                  onClick={() => addToCart(activeProduct)}
+                  onClick={() => addToCart(activeProduct, selectedVariantId ?? undefined, productQty)}
+                  disabled={!activeVariant}
                   className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-[#FCD116] py-4 text-lg font-bold text-[#003893]"
                 >
                   <ShoppingBag className="h-5 w-5" /> Agregar al Carrito
@@ -405,7 +527,7 @@ export default function Storefront({ products }: Props) {
                   <div className="p-12 text-center">
                     <ShoppingBag className="mx-auto mb-4 h-16 w-16 text-slate-300" />
                     <h2 className="text-xl font-bold text-slate-900">Tu carrito está vacío</h2>
-                    <button className="mt-6 rounded-full bg-[#003893] px-6 py-3 font-medium text-white" onClick={() => setView("home")}>Seguir comprando</button>
+                    <button className="mt-6 rounded-full bg-[#003893] px-6 py-3 font-medium text-white" onClick={() => navigate("home")}>Seguir comprando</button>
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-100">
@@ -452,11 +574,18 @@ export default function Storefront({ products }: Props) {
                 </div>
 
                 <button
-                  onClick={goCheckout}
+                  onClick={() => {
+                    if (!userEmail) {
+                      navigate("login");
+                      setToast("Inicia sesión para continuar al pago");
+                      return;
+                    }
+                    goCheckout().catch(() => null);
+                  }}
                   disabled={checkingOut}
                   className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#003893] py-4 text-lg font-bold text-white disabled:opacity-60"
                 >
-                  {checkingOut ? "Creando pago..." : "Proceder al Pago"} <ArrowRight className="h-5 w-5" />
+                  {checkingOut ? "Creando pago..." : userEmail ? "Proceder al Pago" : "Inicia sesión para pagar"} <ArrowRight className="h-5 w-5" />
                 </button>
 
                 <p className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-500">
@@ -471,8 +600,24 @@ export default function Storefront({ products }: Props) {
       {view === "login" && (
         <main className="hero-pattern flex min-h-screen items-center justify-center px-4 py-24">
           <section className="w-full max-w-md rounded-3xl border border-slate-700 bg-slate-950 p-8 shadow-2xl">
-            <h1 className="text-center text-2xl font-bold text-white">Inicia Sesión</h1>
-            <p className="mt-2 text-center text-sm text-slate-400">Accede para continuar con tu compra</p>
+            <h1 className="text-center text-2xl font-bold text-white">{userEmail ? "Tu cuenta" : "Inicia Sesión"}</h1>
+            <p className="mt-2 text-center text-sm text-slate-400">
+              {userEmail ? `Conectado como ${userEmail}` : "Accede para continuar con tu compra"}
+            </p>
+
+            {userEmail && (
+              <div className="mt-6 space-y-3">
+                <button className="w-full rounded-xl border border-slate-600 py-3 font-semibold text-white" onClick={() => navigate("cart")}>
+                  Ir al carrito
+                </button>
+                <button
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-800 py-3 font-semibold text-white"
+                  onClick={() => handleLogout().catch(() => null)}
+                >
+                  <LogOut className="h-4 w-4" /> Cerrar sesión
+                </button>
+              </div>
+            )}
 
             <form
               onSubmit={(event) => {
@@ -498,12 +643,16 @@ export default function Storefront({ products }: Props) {
                 required
               />
 
-              <button className="w-full rounded-xl bg-[#FCD116] py-3.5 text-lg font-bold text-[#003893]" type="submit">
-                Entrar a la Tribuna
+              <button className="w-full rounded-xl bg-[#FCD116] py-3.5 text-lg font-bold text-[#003893] disabled:opacity-70" type="submit" disabled={authBusy}>
+                {authBusy ? "Procesando..." : "Entrar a la Tribuna"}
               </button>
             </form>
 
-            <button className="mt-4 w-full rounded-xl border border-slate-600 py-3 font-semibold text-white" onClick={() => handleAuth("signup").catch(() => null)}>
+            <button
+              className="mt-4 w-full rounded-xl border border-slate-600 py-3 font-semibold text-white disabled:opacity-70"
+              onClick={() => handleAuth("signup").catch(() => null)}
+              disabled={authBusy}
+            >
               Crear cuenta
             </button>
           </section>
