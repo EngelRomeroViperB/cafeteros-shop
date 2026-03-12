@@ -12,8 +12,20 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-col-yellow: var(--col-yellow);
+  --color-col-blue: var(--col-blue);
+  --color-col-red: var(--col-red);
+  --color-dark-bg: var(--dark-bg);
   --font-sans: var(--font-inter);
   --font-display: var(--font-montserrat);
+
+  --animate-blob: blob 7s infinite;
+  @keyframes blob {
+    0% { transform: translate(0px, 0px) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
 }
 
 body {
@@ -26,4 +38,20 @@ body {
   background-color: #0f172a;
   background-image: radial-gradient(#1e293b 1px, transparent 1px);
   background-size: 20px 20px;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
