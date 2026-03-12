@@ -288,10 +288,10 @@ export default function Storefront({ products }: Props) {
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => navigate("home")}>
               <div className="w-10 h-10 rounded-full bg-col-yellow flex items-center justify-center mr-3 border-2 border-col-blue shadow-[0_0_10px_rgba(252,209,22,0.5)] transition-transform hover:scale-110">
-                <span className="font-display font-bold text-col-blue text-lg">FCF</span>
+                <span className="font-display font-bold text-col-blue text-lg">CF</span>
               </div>
               <span className="font-display font-bold text-xl text-white tracking-wider hidden sm:block">
-                LA TRICOLOR
+                CAFETEROS
               </span>
             </div>
 
@@ -933,9 +933,9 @@ export default function Storefront({ products }: Props) {
             <div className="col-span-1 md:col-span-1">
               <div className="flex items-center mb-6 cursor-pointer" onClick={() => navigate("home")}>
                 <div className="w-8 h-8 rounded-full bg-col-yellow flex items-center justify-center mr-2">
-                  <span className="font-display font-bold text-col-blue text-xs">FCF</span>
+                  <span className="font-display font-bold text-col-blue text-xs">CF</span>
                 </div>
-                <span className="font-display font-bold text-xl tracking-wider">LA TRICOLOR</span>
+                <span className="font-display font-bold text-xl tracking-wider">CAFETEROS</span>
               </div>
               <p className="text-gray-400 text-sm">Distribuidor autorizado de indumentaria oficial de la Selección Colombia.</p>
             </div>

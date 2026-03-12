@@ -15,17 +15,17 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://cafeteros-shop.vercel.app"),
   title: {
-    default: "La Tricolor Store",
-    template: "%s | La Tricolor Store",
+    default: "Cafeteros",
+    template: "%s | Cafeteros",
   },
-  description: "Tienda online de camisetas de la Selección Colombia 2026 con carrito, auth y checkout con Wompi.",
-  applicationName: "La Tricolor Store",
+  description: "Tienda online de camisetas de la Selección Colombia 2026 con carrito, auth y checkout seguro.",
+  applicationName: "Cafeteros",
   keywords: [
     "camiseta seleccion colombia",
     "camiseta colombia 2026",
     "tienda futbol colombia",
     "wompi",
-    "la tricolor",
+    "cafeteros",
   ],
   alternates: {
     canonical: "/",
@@ -34,13 +34,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_CO",
     url: "/",
-    siteName: "La Tricolor Store",
-    title: "La Tricolor Store",
+    siteName: "Cafeteros",
+    title: "Cafeteros",
     description: "Compra la nueva camiseta de la Selección Colombia con una experiencia moderna y segura.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "La Tricolor Store",
+    title: "Cafeteros",
     description: "Tienda online de camisetas de la Selección Colombia 2026.",
   },
 };
