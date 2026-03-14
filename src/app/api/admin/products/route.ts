@@ -18,61 +18,66 @@ export async function GET(req: NextRequest) {
   const auth = checkAdminKey(req);
   if (!auth.ok) return unauthorized(auth.detail);
 
-  const supabase = createAdminSupabaseClient();
+  try {
+    const supabase = createAdminSupabaseClient();
 
-  const { data: products, error } = await supabase
-    .from("products")
-    .select("*")
-    .order("created_at", { ascending: false });
+    const { data: products, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      return NextResponse.json({ error: error.message, detail: "products query failed" }, { status: 500 });
+    }
+
+    const productIds = (products ?? []).map((p) => p.id);
+
+    const [variantsRes, mediaRes, categoriesRes] = await Promise.all([
+      productIds.length > 0
+        ? supabase
+            .from("product_variants")
+            .select("*")
+            .in("product_id", productIds)
+            .order("price_cop", { ascending: true })
+        : { data: [], error: null },
+      productIds.length > 0
+        ? supabase
+            .from("product_media")
+            .select("*")
+            .in("product_id", productIds)
+            .order("sort_order", { ascending: true })
+        : { data: [], error: null },
+      supabase.from("categories").select("*").order("name"),
+    ]);
+
+    const variantsByProduct = new Map<string, typeof variantsRes.data>();
+    (variantsRes.data ?? []).forEach((v: { product_id: string }) => {
+      const arr = variantsByProduct.get(v.product_id) ?? [];
+      arr.push(v);
+      variantsByProduct.set(v.product_id, arr);
+    });
+
+    const mediaByProduct = new Map<string, typeof mediaRes.data>();
+    (mediaRes.data ?? []).forEach((m: { product_id: string }) => {
+      const arr = mediaByProduct.get(m.product_id) ?? [];
+      arr.push(m);
+      mediaByProduct.set(m.product_id, arr);
+    });
+
+    const enriched = (products ?? []).map((p) => ({
+      ...p,
+      variants: variantsByProduct.get(p.id) ?? [],
+      media: mediaByProduct.get(p.id) ?? [],
+    }));
+
+    return NextResponse.json({
+      products: enriched,
+      categories: categoriesRes.data ?? [],
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  const productIds = (products ?? []).map((p) => p.id);
-
-  const [variantsRes, mediaRes, categoriesRes] = await Promise.all([
-    productIds.length > 0
-      ? supabase
-          .from("product_variants")
-          .select("*")
-          .in("product_id", productIds)
-          .order("price_cop", { ascending: true })
-      : { data: [], error: null },
-    productIds.length > 0
-      ? supabase
-          .from("product_media")
-          .select("*")
-          .in("product_id", productIds)
-          .order("sort_order", { ascending: true })
-      : { data: [], error: null },
-    supabase.from("categories").select("*").order("name"),
-  ]);
-
-  const variantsByProduct = new Map<string, typeof variantsRes.data>();
-  (variantsRes.data ?? []).forEach((v: { product_id: string }) => {
-    const arr = variantsByProduct.get(v.product_id) ?? [];
-    arr.push(v);
-    variantsByProduct.set(v.product_id, arr);
-  });
-
-  const mediaByProduct = new Map<string, typeof mediaRes.data>();
-  (mediaRes.data ?? []).forEach((m: { product_id: string }) => {
-    const arr = mediaByProduct.get(m.product_id) ?? [];
-    arr.push(m);
-    mediaByProduct.set(m.product_id, arr);
-  });
-
-  const enriched = (products ?? []).map((p) => ({
-    ...p,
-    variants: variantsByProduct.get(p.id) ?? [],
-    media: mediaByProduct.get(p.id) ?? [],
-  }));
-
-  return NextResponse.json({
-    products: enriched,
-    categories: categoriesRes.data ?? [],
-  });
 }
 
 export async function POST(req: NextRequest) {

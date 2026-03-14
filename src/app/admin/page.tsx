@@ -138,12 +138,12 @@ export default function AdminPage() {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/products", { headers });
-      if (!res.ok) throw new Error("Fetch failed");
       const json = await res.json();
+      if (!res.ok) throw new Error(json.error || json.detail || "Fetch failed");
       setProducts(json.products);
       setCategories(json.categories);
-    } catch {
-      flash("Error al cargar productos");
+    } catch (err) {
+      flash(`Error: ${err instanceof Error ? err.message : "al cargar productos"}`);
     } finally {
       setLoading(false);
     }
