@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
-function unauthorized() {
-  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+function unauthorized(detail?: string) {
+  return NextResponse.json({ error: "Unauthorized", detail }, { status: 401 });
 }
 
-function checkAdminKey(req: NextRequest) {
+function checkAdminKey(req: NextRequest): { ok: boolean; detail?: string } {
   const key = req.headers.get("x-admin-key");
-  return key === process.env.ADMIN_SECRET_KEY;
+  const secret = process.env.ADMIN_SECRET_KEY;
+  if (!secret) return { ok: false, detail: "ADMIN_SECRET_KEY not configured on server" };
+  if (!key) return { ok: false, detail: "No key provided" };
+  if (key !== secret) return { ok: false, detail: "Key mismatch" };
+  return { ok: true };
 }
 
 export async function GET(req: NextRequest) {
-  if (!checkAdminKey(req)) return unauthorized();
+  const auth = checkAdminKey(req);
+  if (!auth.ok) return unauthorized(auth.detail);
 
   const supabase = createAdminSupabaseClient();
 
@@ -71,7 +76,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!checkAdminKey(req)) return unauthorized();
+  const auth = checkAdminKey(req);
+  if (!auth.ok) return unauthorized(auth.detail);
 
   const body = await req.json();
   const supabase = createAdminSupabaseClient();

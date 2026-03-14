@@ -173,7 +173,8 @@ export default function AdminPage() {
         sessionStorage.setItem("admin_key", keyInput.trim());
         setAuthed(true);
       } else {
-        flash("Clave incorrecta");
+        const json = await res.json().catch(() => ({}));
+        flash(json.detail ?? "Clave incorrecta");
       }
     } catch {
       flash("Error de conexión");
