@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (error) {
-      return NextResponse.json({ error: error.message, detail: "products query failed" }, { status: 500 });
+      return NextResponse.json({ error: `products query failed: ${error.message} (code: ${error.code})` }, { status: 500 });
     }
 
     const productIds = (products ?? []).map((p) => p.id);
