@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { Product, ProductVariant } from "@/types/store";
+import type { Product, ProductMedia, ProductVariant } from "@/types/store";
 
 const fallbackProducts: Product[] = [
   {
@@ -70,10 +70,29 @@ export async function getFeaturedProducts(): Promise<Product[]> {
       variantsByProduct.set(variant.product_id, current);
     });
 
-    return products.map((product) => ({
-      ...(product as Omit<Product, "variants">),
-      variants: variantsByProduct.get(product.id) ?? [],
-    }));
+    const { data: media } = await supabase
+      .from("product_media")
+      .select("id, product_id, url, media_type, sort_order")
+      .in("product_id", productIds)
+      .order("sort_order", { ascending: true });
+
+    const mediaByProduct = new Map<string, ProductMedia[]>();
+    (media ?? []).forEach((m) => {
+      const current = mediaByProduct.get(m.product_id) ?? [];
+      current.push(m as ProductMedia);
+      mediaByProduct.set(m.product_id, current);
+    });
+
+    return products.map((product) => {
+      const productMedia = mediaByProduct.get(product.id) ?? [];
+      const firstImage = productMedia.find((m) => m.media_type === "image");
+      return {
+        ...(product as Omit<Product, "variants" | "media">),
+        image_url: product.image_url || firstImage?.url || null,
+        variants: variantsByProduct.get(product.id) ?? [],
+        media: productMedia,
+      };
+    });
   } catch (err) {
     console.error("Supabase connection failed, using fallback products:", err);
     return fallbackProducts;

@@ -579,7 +579,7 @@ export default function AdminPage() {
                     value={draft.image_url}
                     onChange={(e) => setDraft((d) => ({ ...d, image_url: e.target.value }))}
                     className="w-full bg-gray-800 rounded-lg px-4 py-2.5 border border-gray-700 focus:border-yellow-400 focus:outline-none text-white"
-                    placeholder="https://...supabase.co/storage/v1/object/public/..."
+                    placeholder="https://tu-proyecto.supabase.co/storage/v1/object/public/bucket/imagen.jpg"
                   />
                 </div>
                 <div>
@@ -803,7 +803,7 @@ export default function AdminPage() {
                     <div className="flex-1">
                       <input
                         type="text"
-                        placeholder="URL del archivo (Supabase Storage, Google Drive, etc.)"
+                        placeholder="URL del archivo en Supabase Storage"
                         value={mediaUrl}
                         onChange={(e) => setMediaUrl(e.target.value)}
                         className="w-full bg-gray-800 rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-400 focus:outline-none text-white text-sm"
