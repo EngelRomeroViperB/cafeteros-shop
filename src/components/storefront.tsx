@@ -21,7 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
-import type { CartItem, Product } from "@/types/store";
+import type { CartItem, Product, ProductMedia } from "@/types/store";
 
 type Props = {
   products: Product[];
@@ -56,6 +56,7 @@ export default function Storefront({ products }: Props) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [authBusy, setAuthBusy] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [selectedMediaIdx, setSelectedMediaIdx] = useState(0);
 
   const activeProduct = useMemo(
     () => products.find((product) => product.id === activeProductId) ?? products[0] ?? null,
@@ -111,6 +112,7 @@ export default function Storefront({ products }: Props) {
 
     setSelectedVariantId(activeProduct.variants[0]?.id ?? null);
     setProductQty(1);
+    setSelectedMediaIdx(0);
   }, [activeProductId, activeProduct]);
 
   const navigate = (nextView: ViewName) => {
@@ -550,11 +552,14 @@ export default function Storefront({ products }: Props) {
                         )}
                         
                         <div className={`aspect-square rounded-xl mb-6 flex items-center justify-center overflow-hidden relative group-hover:scale-[1.02] transition-transform ${isDark ? "bg-gray-900" : "bg-gray-100"}`}>
-                          {product.image_url ? (
-                            <img src={product.image_url} alt={product.name} className="w-3/4 h-3/4 object-contain drop-shadow-md" />
-                          ) : (
-                            <ShoppingBag className={`w-32 h-32 drop-shadow-md ${isDark ? "text-gray-800 border-[1px] border-gray-700/50 fill-gray-800 rounded-md" : "text-col-yellow"}`} />
-                          )}
+                          {(() => {
+                            const thumb = product.image_url || product.media?.find((m) => m.media_type === "image")?.url;
+                            return thumb ? (
+                              <img src={thumb} alt={product.name} className="w-3/4 h-3/4 object-contain drop-shadow-md" />
+                            ) : (
+                              <ShoppingBag className={`w-32 h-32 drop-shadow-md ${isDark ? "text-gray-800 border-[1px] border-gray-700/50 fill-gray-800 rounded-md" : "text-col-yellow"}`} />
+                            );
+                          })()}
                         </div>
                         <div className="space-y-2">
                           <div className="flex justify-between items-start">
@@ -606,37 +611,66 @@ export default function Storefront({ products }: Props) {
             <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
               {/* Galería de Imagen */}
               <div className="w-full lg:w-1/2">
-                <div className="bg-gray-100 rounded-3xl aspect-[4/5] flex items-center justify-center relative shadow-inner overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 to-white opacity-50"></div>
-                  {activeProduct.image_url ? (
-                    <img src={activeProduct.image_url} alt={activeProduct.name} className="w-3/4 h-3/4 object-contain drop-shadow-2xl relative z-10 transform transition-transform duration-700 hover:scale-125" />
-                  ) : (
-                    <ShoppingBag className="w-64 h-64 text-col-yellow drop-shadow-2xl relative z-10 transform transition-transform duration-700 hover:scale-125" />
-                  )}
-                  {activeProduct.badge && (
-                    <div className="absolute top-6 left-6 bg-col-red text-white text-xs font-bold px-4 py-1.5 rounded-full z-20 uppercase tracking-wider">
-                      {activeProduct.badge}
-                    </div>
-                  )}
-                </div>
-                <div className="grid grid-cols-4 gap-4 mt-4">
-                  <div className="bg-gray-100 rounded-xl aspect-square flex items-center justify-center border-2 border-col-blue cursor-pointer overflow-hidden">
-                    {activeProduct.image_url ? (
-                      <img src={activeProduct.image_url} alt={activeProduct.name} className="w-3/4 h-3/4 object-contain" />
-                    ) : (
-                      <ShoppingBag className="w-10 h-10 text-col-yellow" />
-                    )}
-                  </div>
-                  <div className="bg-gray-100 rounded-xl aspect-square flex items-center justify-center border border-gray-200 cursor-pointer hover:border-gray-400">
-                    <span className="text-xs font-bold text-gray-400">Dorso</span>
-                  </div>
-                  <div className="bg-gray-100 rounded-xl aspect-square flex items-center justify-center border border-gray-200 cursor-pointer hover:border-gray-400">
-                    <span className="text-xs font-bold text-gray-400">Detalle</span>
-                  </div>
-                  <div className="bg-gray-100 rounded-xl aspect-square flex items-center justify-center border border-gray-200 cursor-pointer hover:border-gray-400">
-                    <span className="text-xs font-bold text-gray-400">Escudo</span>
-                  </div>
-                </div>
+                {(() => {
+                  const allMedia: ProductMedia[] = activeProduct.media ?? [];
+                  const hasMedia = allMedia.length > 0;
+                  const current = hasMedia ? allMedia[selectedMediaIdx] ?? allMedia[0] : null;
+                  const fallbackImg = activeProduct.image_url;
+
+                  return (
+                    <>
+                      <div className="bg-gray-100 rounded-3xl aspect-[4/5] flex items-center justify-center relative shadow-inner overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 to-white opacity-50"></div>
+                        {current ? (
+                          current.media_type === "video" ? (
+                            <video
+                              key={current.id}
+                              src={current.url}
+                              className="w-full h-full object-contain relative z-10"
+                              controls
+                              playsInline
+                              muted
+                              autoPlay
+                              loop
+                            />
+                          ) : (
+                            <img src={current.url} alt={activeProduct.name} className="w-3/4 h-3/4 object-contain drop-shadow-2xl relative z-10 transform transition-transform duration-700 hover:scale-125" />
+                          )
+                        ) : fallbackImg ? (
+                          <img src={fallbackImg} alt={activeProduct.name} className="w-3/4 h-3/4 object-contain drop-shadow-2xl relative z-10 transform transition-transform duration-700 hover:scale-125" />
+                        ) : (
+                          <ShoppingBag className="w-64 h-64 text-col-yellow drop-shadow-2xl relative z-10 transform transition-transform duration-700 hover:scale-125" />
+                        )}
+                        {activeProduct.badge && (
+                          <div className="absolute top-6 left-6 bg-col-red text-white text-xs font-bold px-4 py-1.5 rounded-full z-20 uppercase tracking-wider">
+                            {activeProduct.badge}
+                          </div>
+                        )}
+                      </div>
+                      {hasMedia && allMedia.length > 1 && (
+                        <div className="grid grid-cols-4 gap-4 mt-4">
+                          {allMedia.map((m, idx) => (
+                            <button
+                              key={m.id}
+                              onClick={() => setSelectedMediaIdx(idx)}
+                              className={`bg-gray-100 rounded-xl aspect-square flex items-center justify-center cursor-pointer overflow-hidden ${
+                                idx === selectedMediaIdx ? "border-2 border-col-blue" : "border border-gray-200 hover:border-gray-400"
+                              }`}
+                            >
+                              {m.media_type === "video" ? (
+                                <div className="relative w-full h-full flex items-center justify-center bg-gray-200">
+                                  <span className="text-xs font-bold text-gray-500">▶ Video</span>
+                                </div>
+                              ) : (
+                                <img src={m.url} alt="" className="w-3/4 h-3/4 object-contain" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Detalles del Producto */}
