@@ -40,6 +40,15 @@ create table if not exists public.product_variants (
 create unique index if not exists product_variants_product_size_color_uniq
 on public.product_variants (product_id, size, color);
 
+create table if not exists public.product_media (
+  id uuid primary key default gen_random_uuid(),
+  product_id uuid not null references public.products(id) on delete cascade,
+  url text not null,
+  media_type text not null default 'image' check (media_type in ('image', 'video')),
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete set null,
@@ -86,35 +95,48 @@ alter table public.profiles enable row level security;
 alter table public.categories enable row level security;
 alter table public.products enable row level security;
 alter table public.product_variants enable row level security;
+alter table public.product_media enable row level security;
 alter table public.orders enable row level security;
 alter table public.order_items enable row level security;
 
-create policy if not exists "public read categories"
+drop policy if exists "public read categories" on public.categories;
+create policy "public read categories"
 on public.categories for select
 using (true);
 
-create policy if not exists "public read products"
+drop policy if exists "public read products" on public.products;
+create policy "public read products"
 on public.products for select
 using (is_active = true);
 
-create policy if not exists "public read active variants"
+drop policy if exists "public read active variants" on public.product_variants;
+create policy "public read active variants"
 on public.product_variants for select
 using (is_active = true);
 
-create policy if not exists "users read own orders"
+drop policy if exists "public read product media" on public.product_media;
+create policy "public read product media"
+on public.product_media for select
+using (true);
+
+drop policy if exists "users read own orders" on public.orders;
+create policy "users read own orders"
 on public.orders for select
 using (auth.uid() = user_id);
 
-create policy if not exists "service role insert orders"
+drop policy if exists "service role insert orders" on public.orders;
+create policy "service role insert orders"
 on public.orders for insert
 with check (auth.role() = 'service_role');
 
-create policy if not exists "service role update orders"
+drop policy if exists "service role update orders" on public.orders;
+create policy "service role update orders"
 on public.orders for update
 using (auth.role() = 'service_role')
 with check (auth.role() = 'service_role');
 
-create policy if not exists "users read own order items"
+drop policy if exists "users read own order items" on public.order_items;
+create policy "users read own order items"
 on public.order_items for select
 using (
   exists (
@@ -123,7 +145,8 @@ using (
   )
 );
 
-create policy if not exists "service role insert order items"
+drop policy if exists "service role insert order items" on public.order_items;
+create policy "service role insert order items"
 on public.order_items for insert
 with check (auth.role() = 'service_role');
 

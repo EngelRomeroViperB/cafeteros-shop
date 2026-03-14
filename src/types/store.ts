@@ -8,6 +8,14 @@ export type ProductVariant = {
   is_active: boolean;
 };
 
+export type ProductMedia = {
+  id: string;
+  product_id: string;
+  url: string;
+  media_type: "image" | "video";
+  sort_order: number;
+};
+
 export type Product = {
   id: string;
   slug: string;
@@ -18,6 +26,7 @@ export type Product = {
   is_featured: boolean;
   is_active: boolean;
   variants: ProductVariant[];
+  media?: ProductMedia[];
 };
 
 export type CartItem = {
