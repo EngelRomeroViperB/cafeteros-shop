@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { checkRate } from "@/lib/rate-limit";
 
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -11,9 +12,22 @@ function checkAdminKey(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  if (!checkRate(`admin:${ip}`, 30, 60_000)) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
+  }
   if (!checkAdminKey(req)) return unauthorized();
 
   const body = await req.json();
+
+  if (!body.product_id) return NextResponse.json({ error: "product_id es requerido" }, { status: 400 });
+  if (!body.url || typeof body.url !== "string" || !body.url.trim()) {
+    return NextResponse.json({ error: "URL es requerida" }, { status: 400 });
+  }
+  if (body.gender && !["Dama", "Caballero"].includes(body.gender)) {
+    return NextResponse.json({ error: "G\u00e9nero debe ser Dama o Caballero" }, { status: 400 });
+  }
+
   const supabase = createAdminSupabaseClient();
 
   const { data, error } = await supabase
@@ -37,6 +51,10 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  if (!checkRate(`admin:${ip}`, 30, 60_000)) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
+  }
   if (!checkAdminKey(req)) return unauthorized();
 
   const body = await req.json();
@@ -65,6 +83,10 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  if (!checkRate(`admin:${ip}`, 30, 60_000)) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
+  }
   if (!checkAdminKey(req)) return unauthorized();
 
   const { searchParams } = new URL(req.url);

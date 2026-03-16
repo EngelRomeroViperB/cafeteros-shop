@@ -54,13 +54,34 @@ export async function POST(request: Request) {
       PENDING: "pending",
     };
 
-    await supabase
+    // Update order status
+    const { data: orderData } = await supabase
       .from("orders")
       .update({
         wompi_status: tx.status,
         status: statusMap[tx.status] ?? "pending",
       })
-      .eq("reference", tx.reference);
+      .eq("reference", tx.reference)
+      .select("id")
+      .single();
+
+    // Decrement stock when payment is approved
+    if (tx.status === "APPROVED" && orderData?.id) {
+      const { data: items } = await supabase
+        .from("order_items")
+        .select("variant_id, quantity")
+        .eq("order_id", orderData.id);
+
+      if (items && items.length > 0) {
+        for (const item of items) {
+          if (!item.variant_id) continue;
+          await supabase.rpc("decrement_stock", {
+            p_variant_id: item.variant_id,
+            p_qty: item.quantity,
+          });
+        }
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

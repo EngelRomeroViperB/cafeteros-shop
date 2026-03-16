@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { checkRate } from "@/lib/rate-limit";
 
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -11,6 +12,10 @@ function checkAdminKey(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  if (!checkRate(`admin:${ip}`, 30, 60_000)) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
+  }
   if (!checkAdminKey(req)) return unauthorized();
 
   const { id } = await params;
@@ -41,6 +46,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  if (!checkRate(`admin:${ip}`, 30, 60_000)) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
+  }
   if (!checkAdminKey(req)) return unauthorized();
 
   const { id } = await params;

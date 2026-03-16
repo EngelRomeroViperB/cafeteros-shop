@@ -59,6 +59,7 @@ export default function Storefront({ products, categories }: Props) {
   const [checkingOut, setCheckingOut] = useState(false);
   const [selectedMediaIdx, setSelectedMediaIdx] = useState(0);
   const [selectedGender, setSelectedGender] = useState<"Dama" | "Caballero">("Caballero");
+  const [openAccordion, setOpenAccordion] = useState<string | null>(null);
 
   const activeProduct = useMemo(
     () => products.find((product) => product.id === activeProductId) ?? products[0] ?? null,
@@ -121,11 +122,36 @@ export default function Storefront({ products, categories }: Props) {
     setSelectedMediaIdx(primaryIdx !== undefined && primaryIdx >= 0 ? primaryIdx : 0);
   }, [activeProductId, activeProduct]);
 
-  const navigate = (nextView: ViewName) => {
+  const navigate = (nextView: ViewName, replace = false) => {
     setView(nextView);
     setMobileMenuOpen(false);
+    const state = { view: nextView, productId: activeProductId };
+    if (replace) {
+      window.history.replaceState(state, "");
+    } else {
+      window.history.pushState(state, "");
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  useEffect(() => {
+    // Seed initial history state
+    window.history.replaceState({ view: "home", productId: null }, "");
+
+    const onPopState = (e: PopStateEvent) => {
+      const s = e.state as { view?: ViewName; productId?: string | null } | null;
+      if (s?.view) {
+        setView(s.view);
+        if (s.productId) setActiveProductId(s.productId);
+      } else {
+        setView("home");
+      }
+      setMobileMenuOpen(false);
+    };
+
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   const goHomeAndScroll = (sectionId: string) => {
     navigate("home");
@@ -267,11 +293,16 @@ export default function Storefront({ products, categories }: Props) {
 
     try {
       setCheckingOut(true);
+      const userId = supabase
+        ? (await supabase.auth.getSession()).data.session?.user.id ?? null
+        : null;
+
       const res = await fetch("/api/checkout/wompi", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           customerEmail: userEmail,
+          userId,
           items: cart,
         }),
       });
@@ -307,8 +338,18 @@ export default function Storefront({ products, categories }: Props) {
         <p className="font-medium">{toast || "ok"}</p>
       </div>
 
+      {/* Skip to content */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[200] focus:bg-col-yellow focus:text-col-blue focus:px-4 focus:py-2 focus:rounded-lg focus:font-bold"
+      >
+        Saltar al contenido
+      </a>
+
       {/* Navigation */}
       <nav
+        role="navigation"
+        aria-label="Navegación principal"
         className="fixed w-full z-50 transition-all duration-300 bg-dark-bg/95 backdrop-blur-sm border-b border-gray-800 shadow-lg"
         id="navbar"
       >
@@ -357,6 +398,7 @@ export default function Storefront({ products, categories }: Props) {
               <button
                 onClick={() => navigate("login")}
                 className="text-gray-300 hover:text-col-yellow transition-colors flex items-center gap-2"
+                aria-label={userEmail ? "Mi cuenta" : "Iniciar sesión"}
               >
                 <User className="w-6 h-6" />
                 <span className="hidden lg:block font-medium text-sm">{userEmail ? "Mi cuenta" : "Entrar"}</span>
@@ -365,6 +407,7 @@ export default function Storefront({ products, categories }: Props) {
               <button
                 onClick={() => navigate("cart")}
                 className="text-gray-300 hover:text-col-yellow transition-colors relative flex items-center gap-2"
+                aria-label={`Carrito con ${totalItems} productos`}
               >
                 <div className="relative">
                   <ShoppingBag className="w-6 h-6" />
@@ -383,6 +426,8 @@ export default function Storefront({ products, categories }: Props) {
               <button 
                 className="md:hidden text-white hover:text-col-yellow"
                 onClick={() => setMobileMenuOpen((current) => !current)}
+                aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+                aria-expanded={mobileMenuOpen}
               >
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
@@ -390,7 +435,11 @@ export default function Storefront({ products, categories }: Props) {
           </div>
         </div>
         {mobileMenuOpen && (
-          <div className="border-t border-gray-800 bg-dark-bg px-4 pb-4 pt-3 md:hidden">
+          <div
+            className="border-t border-gray-800 bg-dark-bg px-4 pb-4 pt-3 md:hidden"
+            role="menu"
+            onKeyDown={(e) => { if (e.key === "Escape") setMobileMenuOpen(false); }}
+          >
             <div className="flex flex-col gap-2">
               <button className="rounded-lg px-3 py-2 text-left text-gray-300 hover:text-col-yellow hover:bg-gray-800" onClick={() => navigate("home")}>
                 Inicio
@@ -412,7 +461,7 @@ export default function Storefront({ products, categories }: Props) {
         )}
       </nav>
 
-      <main className="flex-grow">
+      <main className="flex-grow" id="main-content" role="main">
         {view === "home" && (
           <div className="page-view block">
             {/* Hero Section */}
@@ -900,14 +949,37 @@ export default function Storefront({ products, categories }: Props) {
                 </div>
 
                 {/* Acordeón de información */}
-                <div className="border-t border-gray-200 pt-6 space-y-4">
-                  <div className="flex justify-between items-center cursor-pointer text-gray-900 hover:text-col-blue font-bold">
-                    <span>Detalles del producto</span>
-                    <ChevronRight className="w-5 h-5 transform rotate-90" />
+                <div className="border-t border-gray-200 pt-6 space-y-0 divide-y divide-gray-200">
+                  <div>
+                    <button
+                      onClick={() => setOpenAccordion(openAccordion === "details" ? null : "details")}
+                      className="flex justify-between items-center w-full py-4 text-gray-900 hover:text-col-blue font-bold"
+                      aria-expanded={openAccordion === "details"}
+                    >
+                      <span>Detalles del producto</span>
+                      <ChevronRight className={`w-5 h-5 transition-transform duration-200 ${openAccordion === "details" ? "rotate-90" : "rotate-0"}`} />
+                    </button>
+                    <div className={`overflow-hidden transition-all duration-300 ${openAccordion === "details" ? "max-h-60 pb-4" : "max-h-0"}`}>
+                      <p className="text-gray-600 text-sm leading-relaxed">{activeProduct.description || "Producto de alta calidad diseñado para el máximo rendimiento y comodidad."}</p>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center cursor-pointer text-gray-900 hover:text-col-blue font-bold">
-                    <span>Envíos y devoluciones</span>
-                    <ChevronRight className="w-5 h-5 transform rotate-90" />
+                  <div>
+                    <button
+                      onClick={() => setOpenAccordion(openAccordion === "shipping" ? null : "shipping")}
+                      className="flex justify-between items-center w-full py-4 text-gray-900 hover:text-col-blue font-bold"
+                      aria-expanded={openAccordion === "shipping"}
+                    >
+                      <span>Envíos y devoluciones</span>
+                      <ChevronRight className={`w-5 h-5 transition-transform duration-200 ${openAccordion === "shipping" ? "rotate-90" : "rotate-0"}`} />
+                    </button>
+                    <div className={`overflow-hidden transition-all duration-300 ${openAccordion === "shipping" ? "max-h-60 pb-4" : "max-h-0"}`}>
+                      <ul className="text-gray-600 text-sm leading-relaxed space-y-1">
+                        <li>• Envío gratis a partir de $200.000 COP</li>
+                        <li>• Entrega en 3-5 días hábiles a nivel nacional</li>
+                        <li>• Devoluciones gratis dentro de los primeros 30 días</li>
+                        <li>• Producto debe estar sin uso y con etiquetas originales</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -964,16 +1036,16 @@ export default function Storefront({ products, categories }: Props) {
 
                             <div className="flex items-center gap-6">
                               <div className="flex items-center border border-gray-300 rounded-lg bg-white">
-                                <button onClick={() => updateQty(item.variantId, -1)} className="w-8 h-10 flex items-center justify-center text-gray-500 hover:text-col-blue">
+                                <button onClick={() => updateQty(item.variantId, -1)} className="w-8 h-10 flex items-center justify-center text-gray-500 hover:text-col-blue" aria-label={`Reducir cantidad de ${item.name}`}>
                                   <Minus className="w-3 h-3" />
                                 </button>
                                 <span className="w-10 text-center font-bold text-sm">{item.qty}</span>
-                                <button onClick={() => updateQty(item.variantId, 1)} className="w-8 h-10 flex items-center justify-center text-gray-500 hover:text-col-blue">
+                                <button onClick={() => updateQty(item.variantId, 1)} className="w-8 h-10 flex items-center justify-center text-gray-500 hover:text-col-blue" aria-label={`Aumentar cantidad de ${item.name}`}>
                                   <Plus className="w-3 h-3" />
                                 </button>
                               </div>
                               
-                              <button onClick={() => removeItem(item.variantId)} className="text-gray-400 hover:text-col-red transition-colors p-2" title="Eliminar">
+                              <button onClick={() => removeItem(item.variantId)} className="text-gray-400 hover:text-col-red transition-colors p-2" title="Eliminar" aria-label={`Eliminar ${item.name} del carrito`}>
                                 <Trash2 className="w-5 h-5" />
                               </button>
                             </div>

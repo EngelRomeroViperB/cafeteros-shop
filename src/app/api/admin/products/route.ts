@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { checkRate } from "@/lib/rate-limit";
 
 function unauthorized(detail?: string) {
   return NextResponse.json({ error: "Unauthorized", detail }, { status: 401 });
@@ -15,6 +16,10 @@ function checkAdminKey(req: NextRequest): { ok: boolean; detail?: string } {
 }
 
 export async function GET(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  if (!checkRate(`admin:${ip}`, 30, 60_000)) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
+  }
   const auth = checkAdminKey(req);
   if (!auth.ok) return unauthorized(auth.detail);
 
@@ -81,10 +86,22 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  if (!checkRate(`admin:${ip}`, 30, 60_000)) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
+  }
   const auth = checkAdminKey(req);
   if (!auth.ok) return unauthorized(auth.detail);
 
   const body = await req.json();
+
+  if (!body.name || typeof body.name !== "string" || !body.name.trim()) {
+    return NextResponse.json({ error: "Nombre es requerido" }, { status: 400 });
+  }
+  if (!body.slug || typeof body.slug !== "string" || /\s/.test(body.slug)) {
+    return NextResponse.json({ error: "Slug es requerido y no debe contener espacios" }, { status: 400 });
+  }
+
   const supabase = createAdminSupabaseClient();
 
   const { data, error } = await supabase

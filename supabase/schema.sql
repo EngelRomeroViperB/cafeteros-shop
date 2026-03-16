@@ -71,12 +71,24 @@ create table if not exists public.order_items (
   variant_id uuid references public.product_variants(id),
   title text not null,
   selected_size text,
-  selected_color text,
+  selected_gender text,
   quantity integer not null check (quantity > 0),
   unit_price_cop integer not null check (unit_price_cop > 0),
   line_total_cop integer not null check (line_total_cop > 0),
   created_at timestamptz not null default now()
 );
+
+create or replace function public.decrement_stock(p_variant_id uuid, p_qty integer)
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  update public.product_variants
+  set stock = greatest(stock - p_qty, 0)
+  where id = p_variant_id;
+end;
+$$;
 
 create or replace function public.set_updated_at()
 returns trigger
