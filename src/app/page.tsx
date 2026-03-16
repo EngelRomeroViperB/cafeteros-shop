@@ -1,12 +1,15 @@
 import Storefront from "@/components/storefront";
-import { getFeaturedProducts } from "@/lib/catalog";
+import { getCategories, getFeaturedProducts } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const products = await getFeaturedProducts();
+  const [products, categories] = await Promise.all([
+    getFeaturedProducts(),
+    getCategories(),
+  ]);
 
   return (
-    <Storefront products={products} />
+    <Storefront products={products} categories={categories} />
   );
 }

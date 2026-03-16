@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       line_total_cop: item.unitPrice * item.qty,
       title: item.name,
       selected_size: item.size,
-      selected_color: item.color,
+      selected_color: item.gender,
     }));
 
     const { error: itemsError } = await supabase.from("order_items").insert(orderItems);

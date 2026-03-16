@@ -28,7 +28,7 @@ type Variant = {
   id: string;
   product_id: string;
   size: string;
-  color: string;
+  gender: "Dama" | "Caballero";
   price_cop: number;
   stock: number;
   is_active: boolean;
@@ -40,6 +40,7 @@ type Media = {
   url: string;
   media_type: "image" | "video";
   sort_order: number;
+  is_primary: boolean;
 };
 
 type Product = {
@@ -116,7 +117,7 @@ export default function AdminPage() {
   const [draft, setDraft] = useState<ProductDraft>({ ...EMPTY_DRAFT });
 
   // variant editing
-  const [variantDraft, setVariantDraft] = useState({ size: "", color: "", price_cop: "", stock: "" });
+  const [variantDraft, setVariantDraft] = useState({ size: "", gender: "Caballero" as "Dama" | "Caballero", price_cop: "", stock: "" });
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
 
   // media
@@ -247,8 +248,8 @@ export default function AdminPage() {
 
   /* ── variant CRUD ── */
   const addVariant = async () => {
-    if (!editingId || !variantDraft.size || !variantDraft.color || !variantDraft.price_cop) {
-      flash("Completa talla, color y precio");
+    if (!editingId || !variantDraft.size || !variantDraft.gender || !variantDraft.price_cop) {
+      flash("Completa talla, género y precio");
       return;
     }
     setSaving(true);
@@ -256,7 +257,7 @@ export default function AdminPage() {
       const payload = {
         product_id: editingId,
         size: variantDraft.size,
-        color: variantDraft.color,
+        gender: variantDraft.gender,
         price_cop: parseInt(variantDraft.price_cop),
         stock: parseInt(variantDraft.stock) || 0,
       };
@@ -269,7 +270,7 @@ export default function AdminPage() {
         throw new Error(json.error);
       }
       flash(editingVariantId ? "Variante actualizada" : "Variante añadida");
-      setVariantDraft({ size: "", color: "", price_cop: "", stock: "" });
+      setVariantDraft({ size: "", gender: "Caballero", price_cop: "", stock: "" });
       setEditingVariantId(null);
       await fetchAll();
     } catch (err: unknown) {
@@ -293,7 +294,7 @@ export default function AdminPage() {
     setEditingVariantId(v.id);
     setVariantDraft({
       size: v.size,
-      color: v.color,
+      gender: v.gender,
       price_cop: String(v.price_cop),
       stock: String(v.stock),
     });
@@ -339,6 +340,28 @@ export default function AdminPage() {
       await fetchAll();
     } catch {
       flash("Error al eliminar media");
+    }
+  };
+
+  const togglePrimary = async (mediaItem: Media) => {
+    try {
+      const res = await fetch("/api/admin/media", {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({
+          id: mediaItem.id,
+          product_id: mediaItem.product_id,
+          is_primary: !mediaItem.is_primary,
+        }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error);
+      }
+      flash(mediaItem.is_primary ? "Ya no es principal" : "Marcado como principal");
+      await fetchAll();
+    } catch (err: unknown) {
+      flash(`Error: ${err instanceof Error ? err.message : "desconocido"}`);
     }
   };
 
@@ -674,7 +697,7 @@ export default function AdminPage() {
                   <div key={v.id} className="flex items-center gap-3 mb-3 bg-gray-800 rounded-lg p-3">
                     <div className="flex-1 grid grid-cols-4 gap-2 text-sm">
                       <span><span className="text-gray-500">Talla:</span> {v.size}</span>
-                      <span><span className="text-gray-500">Color:</span> {v.color}</span>
+                      <span><span className="text-gray-500">Género:</span> {v.gender}</span>
                       <span><span className="text-gray-500">Precio:</span> {formatCOP(v.price_cop)}</span>
                       <span><span className="text-gray-500">Stock:</span> {v.stock}</span>
                     </div>
@@ -706,13 +729,14 @@ export default function AdminPage() {
                       onChange={(e) => setVariantDraft((d) => ({ ...d, size: e.target.value }))}
                       className="bg-gray-800 rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-400 focus:outline-none text-white text-sm"
                     />
-                    <input
-                      type="text"
-                      placeholder="Color (ej: Amarillo)"
-                      value={variantDraft.color}
-                      onChange={(e) => setVariantDraft((d) => ({ ...d, color: e.target.value }))}
+                    <select
+                      value={variantDraft.gender}
+                      onChange={(e) => setVariantDraft((d) => ({ ...d, gender: e.target.value as "Dama" | "Caballero" }))}
                       className="bg-gray-800 rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-400 focus:outline-none text-white text-sm"
-                    />
+                    >
+                      <option value="Caballero">Caballero</option>
+                      <option value="Dama">Dama</option>
+                    </select>
                     <input
                       type="number"
                       placeholder="Precio COP"
@@ -740,7 +764,7 @@ export default function AdminPage() {
                       <button
                         onClick={() => {
                           setEditingVariantId(null);
-                          setVariantDraft({ size: "", color: "", price_cop: "", stock: "" });
+                          setVariantDraft({ size: "", gender: "Caballero", price_cop: "", stock: "" });
                         }}
                         className="text-gray-500 hover:text-white px-3 py-2 text-sm"
                       >
@@ -780,17 +804,33 @@ export default function AdminPage() {
                         ) : (
                           <img src={m.url} alt="" className="w-full h-full object-cover" />
                         )}
-                        <div className="absolute top-2 left-2">
+                        <div className="absolute top-2 left-2 flex gap-1">
                           <span className={`text-xs px-1.5 py-0.5 rounded ${m.media_type === "video" ? "bg-purple-500/80" : "bg-blue-500/80"} text-white`}>
                             {m.media_type === "video" ? "Video" : "Imagen"}
                           </span>
+                          {m.is_primary && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-400/90 text-gray-900 font-semibold">
+                              Principal
+                            </span>
+                          )}
                         </div>
-                        <button
-                          onClick={() => deleteMedia(m.id)}
-                          className="absolute top-2 right-2 p-1 rounded bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="absolute top-2 right-2 flex gap-1">
+                          {m.media_type === "image" && (
+                            <button
+                              onClick={() => togglePrimary(m)}
+                              className={`p-1 rounded text-white transition-opacity hover:bg-yellow-500 ${m.is_primary ? "bg-yellow-500" : "bg-gray-600/80 opacity-0 group-hover:opacity-100"}`}
+                              title={m.is_primary ? "Quitar principal" : "Marcar como principal"}
+                            >
+                              <Star className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => deleteMedia(m.id)}
+                            className="p-1 rounded bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

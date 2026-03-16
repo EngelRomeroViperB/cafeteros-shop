@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
       url: body.url,
       media_type: body.media_type ?? "image",
       sort_order: body.sort_order ?? 0,
+      is_primary: body.is_primary ?? false,
     })
     .select()
     .single();
@@ -32,6 +33,34 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ media: data }, { status: 201 });
+}
+
+export async function PATCH(req: NextRequest) {
+  if (!checkAdminKey(req)) return unauthorized();
+
+  const body = await req.json();
+  const supabase = createAdminSupabaseClient();
+
+  // Unset all other primary flags for this product first
+  if (body.is_primary) {
+    await supabase
+      .from("product_media")
+      .update({ is_primary: false })
+      .eq("product_id", body.product_id);
+  }
+
+  const { data, error } = await supabase
+    .from("product_media")
+    .update({ is_primary: body.is_primary })
+    .eq("id", body.id)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ media: data });
 }
 
 export async function DELETE(req: NextRequest) {

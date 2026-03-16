@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { Product, ProductMedia, ProductVariant } from "@/types/store";
+import type { Category, Product, ProductMedia, ProductVariant } from "@/types/store";
 
 const fallbackProducts: Product[] = [
   {
@@ -11,12 +11,13 @@ const fallbackProducts: Product[] = [
     image_url: null,
     is_featured: true,
     is_active: true,
+    category_id: null,
     variants: [
       {
         id: "local-authentic-m",
         product_id: "local-authentic",
         size: "M",
-        color: "Amarillo",
+        gender: "Caballero" as const,
         price_cop: 449900,
         stock: 20,
         is_active: true,
@@ -35,7 +36,7 @@ export async function getFeaturedProducts(): Promise<Product[]> {
 
     const { data: products, error } = await supabase
       .from("products")
-      .select("id, slug, name, description, badge, image_url, is_featured, is_active")
+      .select("id, slug, name, description, badge, image_url, is_featured, is_active, category_id")
       .eq("is_active", true)
       .order("created_at", { ascending: false });
 
@@ -52,7 +53,7 @@ export async function getFeaturedProducts(): Promise<Product[]> {
 
     const { data: variants, error: variantsError } = await supabase
       .from("product_variants")
-      .select("id, product_id, size, color, price_cop, stock, is_active")
+      .select("id, product_id, size, gender, price_cop, stock, is_active")
       .in("product_id", productIds)
       .eq("is_active", true)
       .order("price_cop", { ascending: true });
@@ -72,7 +73,7 @@ export async function getFeaturedProducts(): Promise<Product[]> {
 
     const { data: media } = await supabase
       .from("product_media")
-      .select("id, product_id, url, media_type, sort_order")
+      .select("id, product_id, url, media_type, sort_order, is_primary")
       .in("product_id", productIds)
       .order("sort_order", { ascending: true });
 
@@ -85,10 +86,11 @@ export async function getFeaturedProducts(): Promise<Product[]> {
 
     return products.map((product) => {
       const productMedia = mediaByProduct.get(product.id) ?? [];
-      const firstImage = productMedia.find((m) => m.media_type === "image");
+      const primaryImage = productMedia.find((m) => m.media_type === "image" && m.is_primary);
+      const firstImage = primaryImage ?? productMedia.find((m) => m.media_type === "image");
       return {
         ...(product as Omit<Product, "variants" | "media">),
-        image_url: product.image_url || firstImage?.url || null,
+        image_url: firstImage?.url || product.image_url || null,
         variants: variantsByProduct.get(product.id) ?? [],
         media: productMedia,
       };
@@ -96,5 +98,18 @@ export async function getFeaturedProducts(): Promise<Product[]> {
   } catch (err) {
     console.error("Supabase connection failed, using fallback products:", err);
     return fallbackProducts;
+  }
+}
+
+export async function getCategories(): Promise<Category[]> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return [];
+  }
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data } = await supabase.from("categories").select("id, name, slug").order("name");
+    return (data ?? []) as Category[];
+  } catch {
+    return [];
   }
 }

@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     .insert({
       product_id: body.product_id,
       size: body.size,
-      color: body.color,
+      gender: body.gender,
       price_cop: body.price_cop,
       stock: body.stock ?? 0,
       is_active: body.is_active ?? true,
@@ -46,7 +46,7 @@ export async function PUT(req: NextRequest) {
     .from("product_variants")
     .update({
       size: body.size,
-      color: body.color,
+      gender: body.gender,
       price_cop: body.price_cop,
       stock: body.stock ?? 0,
       is_active: body.is_active ?? true,

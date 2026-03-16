@@ -30,15 +30,15 @@ create table if not exists public.product_variants (
   id uuid primary key default gen_random_uuid(),
   product_id uuid not null references public.products(id) on delete cascade,
   size text not null,
-  color text not null,
+  gender text not null check (gender in ('Dama', 'Caballero')),
   price_cop integer not null check (price_cop > 0),
   stock integer not null default 0 check (stock >= 0),
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
 
-create unique index if not exists product_variants_product_size_color_uniq
-on public.product_variants (product_id, size, color);
+create unique index if not exists product_variants_product_size_gender_uniq
+on public.product_variants (product_id, size, gender);
 
 create table if not exists public.product_media (
   id uuid primary key default gen_random_uuid(),
@@ -46,6 +46,7 @@ create table if not exists public.product_media (
   url text not null,
   media_type text not null default 'image' check (media_type in ('image', 'video')),
   sort_order integer not null default 0,
+  is_primary boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -195,13 +196,13 @@ prod3 as (
     is_featured = excluded.is_featured
   returning id
 )
-insert into public.product_variants (product_id, size, color, price_cop, stock)
-select id, 'M', 'Amarillo', 449900, 20 from prod1
+insert into public.product_variants (product_id, size, gender, price_cop, stock)
+select id, 'M', 'Caballero', 449900, 20 from prod1
 union all
-select id, 'M', 'Amarillo', 299900, 30 from prod2
+select id, 'M', 'Caballero', 299900, 30 from prod2
 union all
-select id, 'M', 'Negro', 299900, 25 from prod3
-on conflict (product_id, size, color) do update
+select id, 'M', 'Caballero', 299900, 25 from prod3
+on conflict (product_id, size, gender) do update
 set
   price_cop = excluded.price_cop,
   stock = excluded.stock,

@@ -21,13 +21,14 @@ import {
   X,
 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
-import type { CartItem, Product, ProductMedia } from "@/types/store";
+import type { CartItem, Category, Product, ProductMedia } from "@/types/store";
 
 type Props = {
   products: Product[];
+  categories: Category[];
 };
 
-type ViewName = "home" | "product" | "cart" | "login";
+type ViewName = "home" | "product" | "cart" | "login" | "collections";
 
 const supabase = createBrowserSupabaseClient();
 
@@ -43,7 +44,7 @@ function getStartingVariant(product: Product) {
   return product.variants[0] ?? null;
 }
 
-export default function Storefront({ products }: Props) {
+export default function Storefront({ products, categories }: Props) {
   const [view, setView] = useState<ViewName>("home");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -57,6 +58,7 @@ export default function Storefront({ products }: Props) {
   const [authBusy, setAuthBusy] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
   const [selectedMediaIdx, setSelectedMediaIdx] = useState(0);
+  const [selectedGender, setSelectedGender] = useState<"Dama" | "Caballero">("Caballero");
 
   const activeProduct = useMemo(
     () => products.find((product) => product.id === activeProductId) ?? products[0] ?? null,
@@ -110,9 +112,13 @@ export default function Storefront({ products }: Props) {
       return;
     }
 
-    setSelectedVariantId(activeProduct.variants[0]?.id ?? null);
+    const firstGender = activeProduct.variants[0]?.gender ?? "Caballero";
+    setSelectedGender(firstGender);
+    const firstVariantForGender = activeProduct.variants.find((v) => v.gender === firstGender && v.stock > 0) ?? activeProduct.variants.find((v) => v.gender === firstGender);
+    setSelectedVariantId(firstVariantForGender?.id ?? activeProduct.variants[0]?.id ?? null);
     setProductQty(1);
-    setSelectedMediaIdx(0);
+    const primaryIdx = activeProduct.media?.findIndex((m) => m.media_type === "image" && m.is_primary);
+    setSelectedMediaIdx(primaryIdx !== undefined && primaryIdx >= 0 ? primaryIdx : 0);
   }, [activeProductId, activeProduct]);
 
   const navigate = (nextView: ViewName) => {
@@ -147,6 +153,9 @@ export default function Storefront({ products }: Props) {
         clone[index] = { ...clone[index], qty: clone[index].qty + qty };
         return clone;
       }
+      const primaryMedia = product.media?.find((m) => m.media_type === "image" && m.is_primary);
+      const fallbackMedia = product.media?.find((m) => m.media_type === "image");
+      const cartImage = primaryMedia?.url ?? fallbackMedia?.url ?? product.image_url ?? null;
       return [
         ...current,
         {
@@ -154,9 +163,10 @@ export default function Storefront({ products }: Props) {
           variantId: variant.id,
           name: product.name,
           size: variant.size,
-          color: variant.color,
+          gender: variant.gender,
           unitPrice: variant.price_cop,
           qty,
+          imageUrl: cartImage,
         },
       ];
     });
@@ -317,6 +327,12 @@ export default function Storefront({ products }: Props) {
               >
                 Colección
               </button>
+              <button
+                onClick={() => navigate("collections")}
+                className="text-gray-300 hover:text-col-yellow transition-colors font-medium"
+              >
+                Conjuntos
+              </button>
             </div>
 
             {/* Íconos de Usuario y Carrito */}
@@ -368,6 +384,9 @@ export default function Storefront({ products }: Props) {
               <button className="rounded-lg px-3 py-2 text-left text-gray-300 hover:text-col-yellow hover:bg-gray-800" onClick={() => goHomeAndScroll("tienda")}>
                 Colección
               </button>
+              <button className="rounded-lg px-3 py-2 text-left text-gray-300 hover:text-col-yellow hover:bg-gray-800" onClick={() => navigate("collections")}>
+                Conjuntos
+              </button>
               <button className="rounded-lg px-3 py-2 text-left text-gray-300 hover:text-col-yellow hover:bg-gray-800" onClick={() => navigate("login")}>
                 {userEmail ? "Mi cuenta" : "Entrar"}
               </button>
@@ -382,7 +401,7 @@ export default function Storefront({ products }: Props) {
             {/* Hero Section */}
             <section
               id="inicio"
-              className="relative pt-20 pb-10 lg:pt-28 lg:pb-12 overflow-hidden hero-pattern flex items-center min-h-[75vh]"
+              className="relative pt-20 pb-10 lg:pt-28 lg:pb-12 overflow-hidden hero-pattern flex items-center min-h-[60vh] md:min-h-[75vh]"
             >
               <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
                 <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-col-red mix-blend-multiply filter blur-[80px] opacity-40 animate-blob"></div>
@@ -469,8 +488,74 @@ export default function Storefront({ products }: Props) {
               </div>
             </section>
 
+            {/* Productos Destacados – 3 tarjetas */}
+            <section id="destacados" className="py-12 md:py-20 bg-white">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center max-w-2xl mx-auto mb-14">
+                  <h2 className="font-display text-3xl md:text-4xl font-black text-dark-bg mb-3">Nuestros Productos</h2>
+                  <p className="text-gray-500">Encuentra la camiseta perfecta para ti.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {products.filter((p) => {
+                    const conjuntoCat = categories.find((c) => c.slug === "conjuntos");
+                    return !conjuntoCat || p.category_id !== conjuntoCat.id;
+                  }).slice(0, 2).map((product) => {
+                    const firstVariant = getStartingVariant(product);
+                    const thumb = product.image_url || product.media?.find((m) => m.media_type === "image")?.url;
+                    return (
+                      <div
+                        key={product.id}
+                        className="bg-gray-50 rounded-2xl overflow-hidden shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 cursor-pointer group"
+                        onClick={() => { setActiveProductId(product.id); navigate("product"); }}
+                      >
+                        <div className="aspect-square md:aspect-[4/5] bg-gray-100 flex items-center justify-center relative overflow-hidden">
+                          {thumb ? (
+                            <img src={thumb} alt={product.name} className="w-3/4 h-3/4 object-contain drop-shadow-lg group-hover:scale-110 transition-transform duration-500" />
+                          ) : (
+                            <ShoppingBag className="w-24 h-24 text-col-yellow" />
+                          )}
+                          {product.badge && (
+                            <span className="absolute top-4 left-4 bg-col-red text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">{product.badge}</span>
+                          )}
+                        </div>
+                        <div className="p-6">
+                          <h3 className="font-bold text-xl text-dark-bg mb-1">{product.name}</h3>
+                          <p className="text-gray-500 text-sm mb-3">{product.description}</p>
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-col-blue text-lg">{firstVariant ? formatCOP(firstVariant.price_cop) : ""}</span>
+                            <span className="text-col-blue font-medium text-sm flex items-center gap-1">Ver producto <ArrowRight className="w-4 h-4" /></span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Tarjeta de Colecciones */}
+                  <div
+                    className="bg-gradient-to-br from-dark-bg to-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-700 hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+                    onClick={() => navigate("collections")}
+                  >
+                    <div className="aspect-square md:aspect-[4/5] flex items-center justify-center relative overflow-hidden">
+                      <div className="text-center px-8">
+                        <div className="w-20 h-20 bg-col-yellow/20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                          <ShoppingBag className="w-10 h-10 text-col-yellow" />
+                        </div>
+                        <h3 className="font-display text-2xl font-bold text-white mb-2">Colecciones</h3>
+                        <p className="text-gray-400 text-sm">Descubre nuestros conjuntos deportivos exclusivos.</p>
+                      </div>
+                    </div>
+                    <div className="p-6 border-t border-gray-700">
+                      <span className="text-col-yellow font-bold text-sm flex items-center gap-2 justify-center group-hover:gap-3 transition-all">
+                        Ver Colecciones <ArrowRight className="w-4 h-4" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             {/* Detalles */}
-            <section id="detalles" className="py-24 bg-white relative">
+            <section id="detalles" className="py-14 md:py-24 bg-white relative">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center max-w-3xl mx-auto mb-16">
                   <h2 className="text-col-red font-bold tracking-wide uppercase text-sm mb-2">
@@ -511,7 +596,7 @@ export default function Storefront({ products }: Props) {
             </section>
 
             {/* Tienda (Productos Destacados) */}
-            <section id="tienda" className="py-24 bg-gray-50">
+            <section id="tienda" className="py-14 md:py-24 bg-gray-50">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex flex-col md:flex-row justify-between items-end mb-12 border-b border-gray-200 pb-6">
                   <div>
@@ -597,18 +682,18 @@ export default function Storefront({ products }: Props) {
         )}
 
       {view === "product" && activeProduct && (
-        <div className="page-view block pt-28 pb-24 bg-white min-h-screen">
+        <div className="page-view block pt-24 md:pt-28 pb-16 md:pb-24 bg-white min-h-screen">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Breadcrumbs */}
-            <nav className="flex text-sm text-gray-500 mb-8 items-center gap-2">
-              <button onClick={() => navigate("home")} className="hover:text-col-blue">
+            <nav className="flex text-sm text-gray-500 mb-4 md:mb-8 items-center gap-2">
+              <button onClick={() => navigate("home")} className="hover:text-col-blue flex-shrink-0">
                 Inicio
               </button>
-              <ChevronRight className="w-4 h-4" />
-              <span className="text-gray-900 font-medium">{activeProduct.name}</span>
+              <ChevronRight className="w-4 h-4 flex-shrink-0" />
+              <span className="text-gray-900 font-medium truncate">{activeProduct.name}</span>
             </nav>
 
-            <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
+            <div className="flex flex-col lg:flex-row gap-6 md:gap-12 lg:gap-20">
               {/* Galería de Imagen */}
               <div className="w-full lg:w-1/2">
                 {(() => {
@@ -619,7 +704,7 @@ export default function Storefront({ products }: Props) {
 
                   return (
                     <>
-                      <div className="bg-gray-100 rounded-3xl aspect-[4/5] flex items-center justify-center relative shadow-inner overflow-hidden">
+                      <div className="bg-gray-100 rounded-2xl md:rounded-3xl aspect-square md:aspect-[4/5] flex items-center justify-center relative shadow-inner overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 to-white opacity-50"></div>
                         {current ? (
                           current.media_type === "video" ? (
@@ -648,7 +733,7 @@ export default function Storefront({ products }: Props) {
                         )}
                       </div>
                       {hasMedia && allMedia.length > 1 && (
-                        <div className="grid grid-cols-4 gap-4 mt-4">
+                        <div className="grid grid-cols-4 gap-2 md:gap-4 mt-3 md:mt-4">
                           {allMedia.map((m, idx) => (
                             <button
                               key={m.id}
@@ -676,11 +761,11 @@ export default function Storefront({ products }: Props) {
               {/* Detalles del Producto */}
               <div className="w-full lg:w-1/2 flex flex-col justify-center">
                 <div className="mb-6">
-                  <h1 className="font-display text-3xl md:text-5xl font-black text-dark-bg mb-2">
+                  <h1 className="font-display text-2xl md:text-3xl lg:text-5xl font-black text-dark-bg mb-2">
                     {activeProduct.name}
                   </h1>
                   <div className="flex items-center gap-4">
-                    <p className="text-3xl font-bold text-col-blue">
+                    <p className="text-2xl md:text-3xl font-bold text-col-blue">
                       {activeVariant ? formatCOP(activeVariant.price_cop) : "Sin precio"}
                     </p>
                     {activeVariant && activeVariant.stock > 0 && (
@@ -691,38 +776,80 @@ export default function Storefront({ products }: Props) {
                   </div>
                 </div>
 
-                <p className="text-gray-600 mb-8 text-lg leading-relaxed">
+                <p className="text-gray-600 mb-4 md:mb-8 text-base md:text-lg leading-relaxed">
                   {activeProduct.description}
                 </p>
 
-                {/* Tallas (Variantes) */}
-                <div className="mb-8">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-bold text-gray-900">Selecciona tu talla y color</h3>
-                    <button className="text-col-blue text-sm hover:underline flex items-center gap-1">
-                      <Wind className="w-4 h-4" /> Guía de tallas
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {activeProduct.variants.map((variant) => (
-                      <button
-                        key={variant.id}
-                        type="button"
-                        onClick={() => setSelectedVariantId(variant.id)}
-                        className={`rounded-xl py-3 text-center transition-all ${
-                          selectedVariantId === variant.id 
-                            ? "border-2 border-col-blue bg-blue-50 text-col-blue font-bold shadow-sm" 
-                            : "border border-gray-300 font-medium hover:border-col-blue hover:text-col-blue"
-                        }`}
-                      >
-                        {variant.size} - {variant.color}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {/* Paso 1: Género */}
+                {(() => {
+                  const availableGenders = [...new Set(activeProduct.variants.map((v) => v.gender))];
+                  const sizesForGender = activeProduct.variants.filter((v) => v.gender === selectedGender);
+                  return (
+                    <>
+                      <div className="mb-6">
+                        <h3 className="font-bold text-gray-900 mb-3">Selecciona el género</h3>
+                        <div className="flex gap-3">
+                          {availableGenders.map((g) => (
+                            <button
+                              key={g}
+                              type="button"
+                              onClick={() => {
+                                setSelectedGender(g);
+                                const firstWithStock = activeProduct.variants.find((v) => v.gender === g && v.stock > 0) ?? activeProduct.variants.find((v) => v.gender === g);
+                                setSelectedVariantId(firstWithStock?.id ?? null);
+                              }}
+                              className={`flex-1 rounded-xl py-3 text-center transition-all font-medium ${
+                                selectedGender === g
+                                  ? "border-2 border-col-blue bg-blue-50 text-col-blue font-bold shadow-sm"
+                                  : "border border-gray-300 hover:border-col-blue hover:text-col-blue"
+                              }`}
+                            >
+                              {g}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Paso 2: Talla */}
+                      <div className="mb-8">
+                        <div className="flex justify-between items-center mb-3">
+                          <h3 className="font-bold text-gray-900">Selecciona tu talla</h3>
+                          <button className="text-col-blue text-sm hover:underline flex items-center gap-1">
+                            <Wind className="w-4 h-4" /> Guía de tallas
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                          {sizesForGender.map((variant) => {
+                            const outOfStock = variant.stock <= 0;
+                            return (
+                              <button
+                                key={variant.id}
+                                type="button"
+                                disabled={outOfStock}
+                                onClick={() => setSelectedVariantId(variant.id)}
+                                className={`min-w-[56px] rounded-xl py-3 px-4 text-center transition-all ${
+                                  outOfStock
+                                    ? "border border-gray-200 text-gray-300 cursor-not-allowed line-through"
+                                    : selectedVariantId === variant.id
+                                    ? "border-2 border-col-blue bg-blue-50 text-col-blue font-bold shadow-sm"
+                                    : "border border-gray-300 font-medium hover:border-col-blue hover:text-col-blue"
+                                }`}
+                              >
+                                {variant.size}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {sizesForGender.length === 0 && (
+                          <p className="text-gray-400 text-sm mt-2">No hay tallas disponibles para {selectedGender}.</p>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
 
                 {/* Acciones */}
-                <div className="flex gap-4 mb-10">
+                <div className="flex gap-3 md:gap-4 mb-6 md:mb-10">
                   <div className="flex items-center border border-gray-300 rounded-xl bg-white w-32">
                     <button 
                       className="w-10 h-12 flex items-center justify-center text-gray-500 hover:text-col-blue"
@@ -746,7 +873,7 @@ export default function Storefront({ products }: Props) {
                   <button
                     onClick={() => addToCart(activeProduct, selectedVariantId ?? undefined, productQty)}
                     disabled={!activeVariant}
-                    className="flex-1 bg-col-yellow text-col-blue py-4 rounded-xl font-bold text-lg hover:bg-yellow-400 transition-all shadow-[0_8px_20px_rgba(252,209,22,0.3)] hover:-translate-y-1 flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="flex-1 bg-col-yellow text-col-blue py-3 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-yellow-400 transition-all shadow-[0_8px_20px_rgba(252,209,22,0.3)] hover:-translate-y-1 flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     <ShoppingBag className="w-5 h-5" /> Agregar al Carrito
                   </button>
@@ -770,10 +897,10 @@ export default function Storefront({ products }: Props) {
       )}
 
       {view === "cart" && (
-        <div className="page-view block pt-28 pb-24 bg-gray-50 min-h-screen">
+        <div className="page-view block pt-24 md:pt-28 pb-16 md:pb-24 bg-gray-50 min-h-screen">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 className="font-display text-3xl font-black text-dark-bg mb-8 flex items-center gap-3">
-              <ShoppingCart className="w-8 h-8 text-col-blue" />
+            <h1 className="font-display text-2xl md:text-3xl font-black text-dark-bg mb-6 md:mb-8 flex items-center gap-3">
+              <ShoppingCart className="w-7 h-7 md:w-8 md:h-8 text-col-blue" />
               Tu Carrito
             </h1>
 
@@ -782,7 +909,7 @@ export default function Storefront({ products }: Props) {
               <div className="w-full lg:w-2/3">
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="cart-container">
                   {cart.length === 0 ? (
-                    <div className="p-12 text-center text-gray-500">
+                    <div className="p-8 md:p-12 text-center text-gray-500">
                       <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                       <h3 className="text-xl font-bold text-gray-900 mb-2">Tu carrito está vacío</h3>
                       <p className="mb-6">¡Agrega la nueva piel y prepárate para el partido!</p>
@@ -796,18 +923,22 @@ export default function Storefront({ products }: Props) {
                   ) : (
                     <div className="divide-y divide-gray-100">
                       {cart.map((item) => {
-                        const iconColor = item.color.toLowerCase().includes("negro") ? 'text-gray-800' : 'text-col-yellow';
-                        const iconBg = item.color.toLowerCase().includes("negro") ? 'bg-gray-200' : 'bg-yellow-50';
+                        const iconColor = item.gender === "Dama" ? 'text-pink-500' : 'text-col-yellow';
+                        const iconBg = item.gender === "Dama" ? 'bg-pink-50' : 'bg-yellow-50';
                         
                         return (
-                          <div key={item.variantId} className="p-6 flex flex-col sm:flex-row items-center gap-6">
-                            <div className={`w-24 h-24 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                              <ShoppingBag className={`w-12 h-12 ${iconColor}`} />
+                          <div key={item.variantId} className="p-4 md:p-6 flex flex-col sm:flex-row items-center gap-4 md:gap-6">
+                            <div className={`w-20 h-20 md:w-24 md:h-24 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden`}>
+                              {item.imageUrl ? (
+                                <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover rounded-xl" />
+                              ) : (
+                                <ShoppingBag className={`w-12 h-12 ${iconColor}`} />
+                              )}
                             </div>
                             
                             <div className="flex-grow text-center sm:text-left">
                               <h3 className="font-bold text-gray-900 text-lg">{item.name}</h3>
-                              <p className="text-sm text-gray-500 mb-2">Talla: {item.size} • Color: {item.color}</p>
+                              <p className="text-sm text-gray-500 mb-2">Talla: {item.size} • {item.gender}</p>
                               <p className="font-bold text-col-blue">{formatCOP(item.unitPrice)}</p>
                             </div>
 
@@ -876,6 +1007,78 @@ export default function Storefront({ products }: Props) {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {view === "collections" && (
+        <div className="page-view block pt-24 md:pt-28 pb-16 md:pb-24 bg-gray-50 min-h-screen">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <nav className="flex text-sm text-gray-500 mb-4 md:mb-8 items-center gap-2">
+              <button onClick={() => navigate("home")} className="hover:text-col-blue flex-shrink-0">Inicio</button>
+              <ChevronRight className="w-4 h-4" />
+              <span className="text-gray-900 font-medium">Colecciones</span>
+            </nav>
+
+            <div className="text-center max-w-2xl mx-auto mb-8 md:mb-14">
+              <h1 className="font-display text-2xl md:text-4xl font-black text-dark-bg mb-3">Conjuntos Deportivos</h1>
+              <p className="text-gray-500">Equipamiento completo para entrenar y competir con estilo.</p>
+            </div>
+
+            {(() => {
+              const conjuntoCat = categories.find((c) => c.slug === "conjuntos");
+              const collectionProducts = conjuntoCat
+                ? products.filter((p) => p.category_id === conjuntoCat.id)
+                : [];
+
+              if (collectionProducts.length === 0) {
+                return (
+                  <div className="text-center py-20">
+                    <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Próximamente</h3>
+                    <p className="text-gray-500 mb-6">Estamos preparando conjuntos deportivos exclusivos.</p>
+                    <button onClick={() => navigate("home")} className="bg-col-blue text-white px-6 py-3 rounded-full font-medium hover:bg-blue-800 transition-colors">
+                      Volver al Inicio
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {collectionProducts.map((product) => {
+                    const firstVariant = getStartingVariant(product);
+                    const thumb = product.image_url || product.media?.find((m) => m.media_type === "image")?.url;
+                    return (
+                      <div
+                        key={product.id}
+                        className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 cursor-pointer group"
+                        onClick={() => { setActiveProductId(product.id); navigate("product"); }}
+                      >
+                        {product.badge && (
+                          <div className="absolute top-4 right-4 bg-col-red text-white text-xs font-bold px-3 py-1 rounded-full z-10">{product.badge}</div>
+                        )}
+                        <div className="aspect-square rounded-xl mb-6 flex items-center justify-center overflow-hidden bg-gray-100 group-hover:scale-[1.02] transition-transform">
+                          {thumb ? (
+                            <img src={thumb} alt={product.name} className="w-3/4 h-3/4 object-contain drop-shadow-md" />
+                          ) : (
+                            <ShoppingBag className="w-32 h-32 text-col-yellow" />
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <h3 className="font-bold text-xl text-dark-bg">{product.name}</h3>
+                          <p className="text-gray-500 text-sm">{product.description}</p>
+                          <div className="flex justify-between items-center pt-2">
+                            <span className="font-bold text-col-blue text-lg">{firstVariant ? formatCOP(firstVariant.price_cop) : ""}</span>
+                            <span className="text-col-blue font-medium text-sm flex items-center gap-1">Ver producto <ArrowRight className="w-4 h-4" /></span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

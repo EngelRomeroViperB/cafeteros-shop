@@ -2,7 +2,7 @@ export type ProductVariant = {
   id: string;
   product_id: string;
   size: string;
-  color: string;
+  gender: "Dama" | "Caballero";
   price_cop: number;
   stock: number;
   is_active: boolean;
@@ -14,6 +14,7 @@ export type ProductMedia = {
   url: string;
   media_type: "image" | "video";
   sort_order: number;
+  is_primary: boolean;
 };
 
 export type Product = {
@@ -25,8 +26,15 @@ export type Product = {
   image_url: string | null;
   is_featured: boolean;
   is_active: boolean;
+  category_id: string | null;
   variants: ProductVariant[];
   media?: ProductMedia[];
+};
+
+export type Category = {
+  id: string;
+  name: string;
+  slug: string;
 };
 
 export type CartItem = {
@@ -34,7 +42,8 @@ export type CartItem = {
   variantId: string;
   name: string;
   size: string;
-  color: string;
+  gender: "Dama" | "Caballero";
   unitPrice: number;
   qty: number;
+  imageUrl: string | null;
 };
