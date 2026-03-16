@@ -152,7 +152,9 @@ on public.order_items for insert
 with check (auth.role() = 'service_role');
 
 insert into public.categories (name, slug)
-values ('Camisetas', 'camisetas')
+values
+  ('Camisetas', 'camisetas'),
+  ('Conjuntos', 'conjuntos')
 on conflict (slug) do nothing;
 
 with cat as (
