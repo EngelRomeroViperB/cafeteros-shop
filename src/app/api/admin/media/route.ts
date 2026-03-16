@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
       media_type: body.media_type ?? "image",
       sort_order: body.sort_order ?? 0,
       is_primary: body.is_primary ?? false,
+      gender: body.gender ?? null,
     })
     .select()
     .single();

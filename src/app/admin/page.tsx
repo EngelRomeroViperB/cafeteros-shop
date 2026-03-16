@@ -41,6 +41,7 @@ type Media = {
   media_type: "image" | "video";
   sort_order: number;
   is_primary: boolean;
+  gender: "Dama" | "Caballero" | null;
 };
 
 type Product = {
@@ -123,6 +124,7 @@ export default function AdminPage() {
   // media
   const [mediaUrl, setMediaUrl] = useState("");
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
+  const [mediaGender, setMediaGender] = useState<"Dama" | "Caballero" | "">("")
 
   const headers = useMemo(
     () => ({ "Content-Type": "application/json", "x-admin-key": adminKey }),
@@ -317,6 +319,7 @@ export default function AdminPage() {
           url: mediaUrl.trim(),
           media_type: mediaType,
           sort_order: currentMedia.length,
+          gender: mediaGender || null,
         }),
       });
       if (!res.ok) {
@@ -325,6 +328,7 @@ export default function AdminPage() {
       }
       flash("Media añadido");
       setMediaUrl("");
+      setMediaGender("");
       await fetchAll();
     } catch (err: unknown) {
       flash(`Error: ${err instanceof Error ? err.message : "desconocido"}`);
@@ -804,10 +808,18 @@ export default function AdminPage() {
                         ) : (
                           <img src={m.url} alt="" className="w-full h-full object-cover" />
                         )}
-                        <div className="absolute top-2 left-2 flex gap-1">
+                        <div className="absolute top-2 left-2 flex gap-1 flex-wrap">
                           <span className={`text-xs px-1.5 py-0.5 rounded ${m.media_type === "video" ? "bg-purple-500/80" : "bg-blue-500/80"} text-white`}>
                             {m.media_type === "video" ? "Video" : "Imagen"}
                           </span>
+                          {m.gender && (
+                            <span className={`text-xs px-1.5 py-0.5 rounded text-white ${m.gender === "Dama" ? "bg-pink-500/80" : "bg-sky-500/80"}`}>
+                              {m.gender}
+                            </span>
+                          )}
+                          {!m.gender && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-gray-500/80 text-white">Ambos</span>
+                          )}
                           {m.is_primary && (
                             <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-400/90 text-gray-900 font-semibold">
                               Principal
@@ -856,6 +868,15 @@ export default function AdminPage() {
                     >
                       <option value="image">Imagen</option>
                       <option value="video">Video</option>
+                    </select>
+                    <select
+                      value={mediaGender}
+                      onChange={(e) => setMediaGender(e.target.value as "Dama" | "Caballero" | "")}
+                      className="bg-gray-800 rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-400 focus:outline-none text-white text-sm"
+                    >
+                      <option value="">Ambos</option>
+                      <option value="Caballero">Caballero</option>
+                      <option value="Dama">Dama</option>
                     </select>
                     <button
                       onClick={addMedia}

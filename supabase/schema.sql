@@ -47,6 +47,7 @@ create table if not exists public.product_media (
   media_type text not null default 'image' check (media_type in ('image', 'video')),
   sort_order integer not null default 0,
   is_primary boolean not null default false,
+  gender text check (gender is null or gender in ('Dama', 'Caballero')),
   created_at timestamptz not null default now()
 );
 

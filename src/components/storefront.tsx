@@ -145,12 +145,21 @@ export default function Storefront({ products, categories }: Props) {
       setToast("Producto sin variantes disponibles");
       return;
     }
+    if (variant.stock <= 0) {
+      setToast("Este producto está agotado");
+      return;
+    }
 
     setCart((current) => {
       const index = current.findIndex((item) => item.variantId === variant.id);
       if (index !== -1) {
+        const newQty = Math.min(index !== -1 ? current[index].qty + qty : qty, variant.stock);
+        if (current[index].qty >= variant.stock) {
+          setToast(`Solo hay ${variant.stock} unidades disponibles`);
+          return current;
+        }
         const clone = [...current];
-        clone[index] = { ...clone[index], qty: clone[index].qty + qty };
+        clone[index] = { ...clone[index], qty: newQty };
         return clone;
       }
       const primaryMedia = product.media?.find((m) => m.media_type === "image" && m.is_primary);
@@ -181,7 +190,15 @@ export default function Storefront({ products, categories }: Props) {
           if (item.variantId !== variantId) {
             return item;
           }
-          return { ...item, qty: item.qty + delta };
+          const product = products.find((p) => p.variants.some((v) => v.id === variantId));
+          const variant = product?.variants.find((v) => v.id === variantId);
+          const maxStock = variant?.stock ?? Infinity;
+          const newQty = Math.min(item.qty + delta, maxStock);
+          if (delta > 0 && item.qty >= maxStock) {
+            setToast(`Solo hay ${maxStock} unidades disponibles`);
+            return item;
+          }
+          return { ...item, qty: newQty };
         })
         .filter((item) => item.qty > 0),
     );
@@ -697,7 +714,8 @@ export default function Storefront({ products, categories }: Props) {
               {/* Galería de Imagen */}
               <div className="w-full lg:w-1/2">
                 {(() => {
-                  const allMedia: ProductMedia[] = activeProduct.media ?? [];
+                  const rawMedia: ProductMedia[] = activeProduct.media ?? [];
+                  const allMedia = rawMedia.filter((m) => !m.gender || m.gender === selectedGender);
                   const hasMedia = allMedia.length > 0;
                   const current = hasMedia ? allMedia[selectedMediaIdx] ?? allMedia[0] : null;
                   const fallbackImg = activeProduct.image_url;
@@ -795,8 +813,10 @@ export default function Storefront({ products, categories }: Props) {
                               type="button"
                               onClick={() => {
                                 setSelectedGender(g);
+                                setSelectedMediaIdx(0);
                                 const firstWithStock = activeProduct.variants.find((v) => v.gender === g && v.stock > 0) ?? activeProduct.variants.find((v) => v.gender === g);
                                 setSelectedVariantId(firstWithStock?.id ?? null);
+                                setProductQty(1);
                               }}
                               className={`flex-1 rounded-xl py-3 text-center transition-all font-medium ${
                                 selectedGender === g
@@ -865,7 +885,7 @@ export default function Storefront({ products, categories }: Props) {
                     />
                     <button 
                       className="w-10 h-12 flex items-center justify-center text-gray-500 hover:text-col-blue"
-                      onClick={() => setProductQty((current) => current + 1)}
+                      onClick={() => setProductQty((current) => activeVariant ? Math.min(current + 1, activeVariant.stock) : current + 1)}
                     >
                       <Plus className="w-4 h-4" />
                     </button>

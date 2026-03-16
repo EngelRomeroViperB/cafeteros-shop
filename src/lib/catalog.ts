@@ -73,7 +73,7 @@ export async function getFeaturedProducts(): Promise<Product[]> {
 
     const { data: media } = await supabase
       .from("product_media")
-      .select("id, product_id, url, media_type, sort_order, is_primary")
+      .select("id, product_id, url, media_type, sort_order, is_primary, gender")
       .in("product_id", productIds)
       .order("sort_order", { ascending: true });
 

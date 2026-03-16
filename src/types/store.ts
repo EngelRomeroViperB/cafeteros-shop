@@ -15,6 +15,7 @@ export type ProductMedia = {
   media_type: "image" | "video";
   sort_order: number;
   is_primary: boolean;
+  gender: "Dama" | "Caballero" | null;
 };
 
 export type Product = {
