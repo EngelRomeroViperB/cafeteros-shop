@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { checkRate } from "@/lib/rate-limit";
+import { verifyAdminKey, isUUID } from "@/lib/admin-auth";
 
 function badRequest(msg: string) {
   return NextResponse.json({ error: msg }, { status: 400 });
@@ -22,15 +23,10 @@ function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
-function checkAdminKey(req: NextRequest) {
-  const key = req.headers.get("x-admin-key");
-  return key === process.env.ADMIN_SECRET_KEY;
-}
-
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
   if (!checkRate(`admin:${ip}`, 30, 60_000)) return tooMany();
-  if (!checkAdminKey(req)) {
+  if (!verifyAdminKey(req)) {
     console.warn(`[ADMIN AUTH FAIL] POST /api/admin/variants — IP: ${ip}`);
     return unauthorized();
   }
@@ -38,7 +34,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const err = validateVariantBody(body);
   if (err) return badRequest(err);
-  if (!body.product_id) return badRequest("product_id es requerido");
+  if (!body.product_id || !isUUID(body.product_id)) return badRequest("product_id es requerido y debe ser UUID válido");
 
   const supabase = createAdminSupabaseClient();
 
@@ -65,7 +61,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
   if (!checkRate(`admin:${ip}`, 30, 60_000)) return tooMany();
-  if (!checkAdminKey(req)) {
+  if (!verifyAdminKey(req)) {
     console.warn(`[ADMIN AUTH FAIL] PUT /api/admin/variants — IP: ${ip}`);
     return unauthorized();
   }
@@ -73,7 +69,7 @@ export async function PUT(req: NextRequest) {
   const body = await req.json();
   const err = validateVariantBody(body);
   if (err) return badRequest(err);
-  if (!body.id) return badRequest("id es requerido");
+  if (!body.id || !isUUID(body.id)) return badRequest("id es requerido y debe ser UUID válido");
 
   const supabase = createAdminSupabaseClient();
 
@@ -100,7 +96,7 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
   if (!checkRate(`admin:${ip}`, 30, 60_000)) return tooMany();
-  if (!checkAdminKey(req)) {
+  if (!verifyAdminKey(req)) {
     console.warn(`[ADMIN AUTH FAIL] DELETE /api/admin/variants — IP: ${ip}`);
     return unauthorized();
   }
@@ -108,8 +104,8 @@ export async function DELETE(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
 
-  if (!id) {
-    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  if (!id || !isUUID(id)) {
+    return NextResponse.json({ error: "id es requerido y debe ser UUID válido" }, { status: 400 });
   }
 
   const supabase = createAdminSupabaseClient();

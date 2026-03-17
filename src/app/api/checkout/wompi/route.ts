@@ -24,43 +24,66 @@ export async function POST(request: Request) {
     const body = (await request.json()) as CheckoutBody;
 
     if (!body.customerEmail || !Array.isArray(body.items) || body.items.length === 0) {
-      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+      return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
     }
 
-    const amountInCents = body.items.reduce((sum, item) => sum + item.unitPrice * item.qty, 0) * 100;
-    if (amountInCents <= 0) {
-      return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(body.customerEmail)) {
+      return NextResponse.json({ error: "Formato de correo inv\u00e1lido" }, { status: 400 });
+    }
+
+    // Validate qty is a positive integer for every item
+    for (const item of body.items) {
+      if (!Number.isInteger(item.qty) || item.qty <= 0) {
+        return NextResponse.json({ error: "Cantidad debe ser un entero positivo" }, { status: 400 });
+      }
     }
 
     const supabase = createAdminSupabaseClient();
 
-    // --- Server-side stock validation ---
+    // --- Server-side stock + price validation ---
     const variantIds = body.items.map((item) => item.variantId);
     const { data: variants, error: variantsErr } = await supabase
       .from("product_variants")
-      .select("id, stock")
+      .select("id, stock, price_cop")
       .in("id", variantIds);
 
     if (variantsErr) {
-      throw new Error("No se pudo verificar el stock");
+      return NextResponse.json({ error: "No se pudo verificar el inventario" }, { status: 500 });
     }
 
-    const stockMap = new Map((variants ?? []).map((v) => [v.id, v.stock as number]));
-    const outOfStock: string[] = [];
+    const variantMap = new Map(
+      (variants ?? []).map((v) => [v.id, { stock: v.stock as number, price: v.price_cop as number }]),
+    );
+    const errors: string[] = [];
 
     for (const item of body.items) {
-      const available = stockMap.get(item.variantId) ?? 0;
-      if (item.qty > available) {
-        outOfStock.push(`${item.name} (${item.size}/${item.gender}): pediste ${item.qty}, disponible ${available}`);
+      const variant = variantMap.get(item.variantId);
+      if (!variant) {
+        errors.push(`Variante no encontrada: ${item.name}`);
+        continue;
+      }
+      if (item.qty > variant.stock) {
+        errors.push(`${item.name} (${item.size}/${item.gender}): pediste ${item.qty}, disponible ${variant.stock}`);
+      }
+      if (item.unitPrice !== variant.price) {
+        errors.push(`Precio incorrecto para ${item.name}: recibido ${item.unitPrice}, real ${variant.price}`);
       }
     }
 
-    if (outOfStock.length > 0) {
+    if (errors.length > 0) {
       return NextResponse.json(
-        { error: `Stock insuficiente: ${outOfStock.join("; ")}` },
+        { error: errors.join("; ") },
         { status: 400 },
       );
     }
+
+    // Recalculate amount from DB prices (never trust client)
+    const amountInCents = body.items.reduce((sum, item) => {
+      const dbPrice = variantMap.get(item.variantId)!.price;
+      return sum + dbPrice * item.qty;
+    }, 0) * 100;
 
     const reference = makeReference();
 
@@ -85,8 +108,8 @@ export async function POST(request: Request) {
       product_id: item.productId,
       variant_id: item.variantId,
       quantity: item.qty,
-      unit_price_cop: item.unitPrice,
-      line_total_cop: item.unitPrice * item.qty,
+      unit_price_cop: variantMap.get(item.variantId)!.price,
+      line_total_cop: variantMap.get(item.variantId)!.price * item.qty,
       title: item.name,
       selected_size: item.size,
       selected_gender: item.gender,
@@ -99,7 +122,7 @@ export async function POST(request: Request) {
 
     const redirectBase = process.env.NEXT_PUBLIC_APP_URL;
     if (!redirectBase) {
-      throw new Error("Missing NEXT_PUBLIC_APP_URL");
+      return NextResponse.json({ error: "Configuraci\u00f3n del servidor incompleta" }, { status: 500 });
     }
 
     const checkoutUrl = buildWompiCheckoutUrl({
@@ -115,7 +138,7 @@ export async function POST(request: Request) {
       reference,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unexpected checkout error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[CHECKOUT ERROR]", error);
+    return NextResponse.json({ error: "Error inesperado al procesar el checkout" }, { status: 500 });
   }
 }

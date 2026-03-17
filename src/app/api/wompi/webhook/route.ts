@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { checkRate } from "@/lib/rate-limit";
 
 type WompiWebhookEvent = {
   event: string;
@@ -32,6 +33,11 @@ function verifyWompiEvent(payload: WompiWebhookEvent): boolean {
 }
 
 export async function POST(request: Request) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  if (!checkRate(`webhook:${ip}`, 30, 60_000)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   try {
     const payload = (await request.json()) as WompiWebhookEvent;
 
@@ -85,7 +91,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Webhook error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[WEBHOOK ERROR]", error);
+    return NextResponse.json({ error: "Webhook processing error" }, { status: 500 });
   }
 }

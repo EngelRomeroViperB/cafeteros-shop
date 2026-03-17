@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { checkRate } from "@/lib/rate-limit";
+import { verifyAdminKey, isUUID } from "@/lib/admin-auth";
 
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-}
-
-function checkAdminKey(req: NextRequest) {
-  const key = req.headers.get("x-admin-key");
-  return key === process.env.ADMIN_SECRET_KEY;
 }
 
 export async function POST(req: NextRequest) {
@@ -16,16 +12,19 @@ export async function POST(req: NextRequest) {
   if (!checkRate(`admin:${ip}`, 30, 60_000)) {
     return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
   }
-  if (!checkAdminKey(req)) {
+  if (!verifyAdminKey(req)) {
     console.warn(`[ADMIN AUTH FAIL] POST /api/admin/media — IP: ${ip}`);
     return unauthorized();
   }
 
   const body = await req.json();
 
-  if (!body.product_id) return NextResponse.json({ error: "product_id es requerido" }, { status: 400 });
+  if (!body.product_id || !isUUID(body.product_id)) return NextResponse.json({ error: "product_id es requerido y debe ser UUID válido" }, { status: 400 });
   if (!body.url || typeof body.url !== "string" || !body.url.trim()) {
     return NextResponse.json({ error: "URL es requerida" }, { status: 400 });
+  }
+  if (!/^https:\/\//i.test(body.url.trim())) {
+    return NextResponse.json({ error: "La URL debe usar HTTPS" }, { status: 400 });
   }
   if (body.gender && !["Dama", "Caballero"].includes(body.gender)) {
     return NextResponse.json({ error: "G\u00e9nero debe ser Dama o Caballero" }, { status: 400 });
@@ -58,7 +57,7 @@ export async function PATCH(req: NextRequest) {
   if (!checkRate(`admin:${ip}`, 30, 60_000)) {
     return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
   }
-  if (!checkAdminKey(req)) {
+  if (!verifyAdminKey(req)) {
     console.warn(`[ADMIN AUTH FAIL] PATCH /api/admin/media — IP: ${ip}`);
     return unauthorized();
   }
@@ -93,7 +92,7 @@ export async function DELETE(req: NextRequest) {
   if (!checkRate(`admin:${ip}`, 30, 60_000)) {
     return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
   }
-  if (!checkAdminKey(req)) {
+  if (!verifyAdminKey(req)) {
     console.warn(`[ADMIN AUTH FAIL] DELETE /api/admin/media — IP: ${ip}`);
     return unauthorized();
   }
@@ -101,8 +100,8 @@ export async function DELETE(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
 
-  if (!id) {
-    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  if (!id || !isUUID(id)) {
+    return NextResponse.json({ error: "id es requerido y debe ser UUID válido" }, { status: 400 });
   }
 
   const supabase = createAdminSupabaseClient();

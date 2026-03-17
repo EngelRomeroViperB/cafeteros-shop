@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { checkRate } from "@/lib/rate-limit";
+import { verifyAdminKey } from "@/lib/admin-auth";
 
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-}
-
-function checkAdminKey(req: NextRequest) {
-  const key = req.headers.get("x-admin-key");
-  return key === process.env.ADMIN_SECRET_KEY;
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -16,7 +12,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!checkRate(`admin:${ip}`, 30, 60_000)) {
     return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
   }
-  if (!checkAdminKey(req)) {
+  if (!verifyAdminKey(req)) {
     console.warn(`[ADMIN AUTH FAIL] PUT /api/admin/products/${(await params).id} — IP: ${ip}`);
     return unauthorized();
   }
@@ -53,7 +49,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!checkRate(`admin:${ip}`, 30, 60_000)) {
     return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
   }
-  if (!checkAdminKey(req)) {
+  if (!verifyAdminKey(req)) {
     console.warn(`[ADMIN AUTH FAIL] DELETE /api/admin/products/${(await params).id} — IP: ${ip}`);
     return unauthorized();
   }

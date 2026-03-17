@@ -90,6 +90,12 @@ begin
 end;
 $$;
 
+-- Only service_role (webhook) may call decrement_stock
+revoke execute on function public.decrement_stock(uuid, integer) from public;
+revoke execute on function public.decrement_stock(uuid, integer) from anon;
+revoke execute on function public.decrement_stock(uuid, integer) from authenticated;
+grant execute on function public.decrement_stock(uuid, integer) to service_role;
+
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
@@ -106,6 +112,24 @@ before update on public.orders
 for each row execute function public.set_updated_at();
 
 alter table public.profiles enable row level security;
+
+drop policy if exists "users read own profile" on public.profiles;
+create policy "users read own profile"
+on public.profiles for select
+using (auth.uid() = id);
+
+drop policy if exists "users update own profile" on public.profiles;
+create policy "users update own profile"
+on public.profiles for update
+using (auth.uid() = id)
+with check (auth.uid() = id);
+
+drop policy if exists "service role manage profiles" on public.profiles;
+create policy "service role manage profiles"
+on public.profiles for all
+using (auth.role() = 'service_role')
+with check (auth.role() = 'service_role');
+
 alter table public.categories enable row level security;
 alter table public.products enable row level security;
 alter table public.product_variants enable row level security;

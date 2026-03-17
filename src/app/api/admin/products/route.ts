@@ -1,18 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { checkRate } from "@/lib/rate-limit";
+import { verifyAdminKey, isUUID } from "@/lib/admin-auth";
 
-function unauthorized(detail?: string) {
-  return NextResponse.json({ error: "Unauthorized", detail }, { status: 401 });
-}
-
-function checkAdminKey(req: NextRequest): { ok: boolean; detail?: string } {
-  const key = req.headers.get("x-admin-key");
-  const secret = process.env.ADMIN_SECRET_KEY;
-  if (!secret) return { ok: false, detail: "ADMIN_SECRET_KEY not configured on server" };
-  if (!key) return { ok: false, detail: "No key provided" };
-  if (key !== secret) return { ok: false, detail: "Key mismatch" };
-  return { ok: true };
+function unauthorized() {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
 export async function GET(req: NextRequest) {
@@ -20,10 +12,9 @@ export async function GET(req: NextRequest) {
   if (!checkRate(`admin:${ip}`, 30, 60_000)) {
     return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
   }
-  const auth = checkAdminKey(req);
-  if (!auth.ok) {
-    console.warn(`[ADMIN AUTH FAIL] GET /api/admin/products — IP: ${ip} — ${auth.detail}`);
-    return unauthorized(auth.detail);
+  if (!verifyAdminKey(req)) {
+    console.warn(`[ADMIN AUTH FAIL] GET /api/admin/products — IP: ${ip}`);
+    return unauthorized();
   }
 
   try {
@@ -93,10 +84,9 @@ export async function POST(req: NextRequest) {
   if (!checkRate(`admin:${ip}`, 30, 60_000)) {
     return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
   }
-  const auth = checkAdminKey(req);
-  if (!auth.ok) {
-    console.warn(`[ADMIN AUTH FAIL] POST /api/admin/products — IP: ${ip} — ${auth.detail}`);
-    return unauthorized(auth.detail);
+  if (!verifyAdminKey(req)) {
+    console.warn(`[ADMIN AUTH FAIL] POST /api/admin/products — IP: ${ip}`);
+    return unauthorized();
   }
 
   const body = await req.json();
@@ -106,6 +96,12 @@ export async function POST(req: NextRequest) {
   }
   if (!body.slug || typeof body.slug !== "string" || /\s/.test(body.slug)) {
     return NextResponse.json({ error: "Slug es requerido y no debe contener espacios" }, { status: 400 });
+  }
+  if (body.description && typeof body.description === "string" && body.description.length > 2000) {
+    return NextResponse.json({ error: "Descripci\u00f3n no puede exceder 2000 caracteres" }, { status: 400 });
+  }
+  if (body.category_id && !isUUID(body.category_id)) {
+    return NextResponse.json({ error: "category_id debe ser UUID v\u00e1lido" }, { status: 400 });
   }
 
   const supabase = createAdminSupabaseClient();
