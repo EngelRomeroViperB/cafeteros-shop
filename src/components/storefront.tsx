@@ -291,7 +291,11 @@ export default function Storefront({ products, categories }: Props) {
     const response =
       mode === "login"
         ? await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword })
-        : await supabase.auth.signUp({ email: authEmail, password: authPassword });
+        : await supabase.auth.signUp({
+            email: authEmail,
+            password: authPassword,
+            options: { emailRedirectTo: window.location.origin },
+          });
     setAuthBusy(false);
 
     if (response.error) {
