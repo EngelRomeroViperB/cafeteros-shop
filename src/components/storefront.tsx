@@ -20,6 +20,7 @@ import {
   Wind,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import type { CartItem, Category, Product, ProductMedia } from "@/types/store";
 
@@ -32,12 +33,14 @@ type ViewName = "home" | "product" | "cart" | "login" | "collections";
 
 const supabase = createBrowserSupabaseClient();
 
+const copFormatter = new Intl.NumberFormat("es-CO", {
+  style: "currency",
+  currency: "COP",
+  minimumFractionDigits: 0,
+});
+
 function formatCOP(amount: number) {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    minimumFractionDigits: 0,
-  }).format(amount);
+  return copFormatter.format(amount);
 }
 
 function getStartingVariant(product: Product) {
@@ -402,7 +405,7 @@ export default function Storefront({ products, categories }: Props) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
-            <div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => navigate("home")}>
+            <div className="flex-shrink-0 flex items-center cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate("home"); } }} aria-label="Ir al inicio">
               <div className="w-10 h-10 rounded-full bg-col-yellow flex items-center justify-center mr-3 border-2 border-col-blue shadow-[0_0_10px_rgba(252,209,22,0.5)] transition-transform hover:scale-110">
                 <span className="font-display font-bold text-col-blue text-lg">CF</span>
               </div>
@@ -487,7 +490,8 @@ export default function Storefront({ products, categories }: Props) {
           <div
             ref={mobileMenuRef}
             className="border-t border-gray-800 bg-dark-bg px-4 pb-4 pt-3 md:hidden"
-            role="menu"
+            role="dialog"
+            aria-label="Menú de navegación"
             onKeyDown={(e) => { if (e.key === "Escape") setMobileMenuOpen(false); }}
           >
             <div className="flex flex-col gap-2">
@@ -569,12 +573,16 @@ export default function Storefront({ products, categories }: Props) {
                   
                   <div 
                     className="w-full lg:w-1/2 flex justify-center cursor-pointer relative"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => {
                       if (activeProduct?.id) {
                         setActiveProductId(activeProduct.id);
                       }
                       navigate("product");
                     }}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (activeProduct?.id) setActiveProductId(activeProduct.id); navigate("product"); } }}
+                    aria-label={`Ver ${activeProduct?.name ?? "producto"}`}
                   >
                     <div className="relative w-full max-w-[240px] mx-auto aspect-[4/5] bg-gradient-to-tr from-gray-800 to-gray-700 rounded-2xl p-5 shadow-2xl border border-gray-600/50 flex flex-col items-center justify-center transform lg:rotate-2 hover:rotate-0 hover:scale-105 transition-all duration-500 overflow-hidden group">
                       <div className="absolute top-3 right-3 bg-col-yellow text-col-blue text-[10px] font-bold px-2 py-0.5 rounded-full z-20 shadow-md">
@@ -583,7 +591,7 @@ export default function Storefront({ products, categories }: Props) {
                       <div className="relative z-10 w-full flex-1 flex flex-col items-center justify-center transition-transform duration-500 group-hover:-translate-y-2">
                         <div className="relative w-32 h-40 flex items-center justify-center">
                           {activeProduct?.image_url ? (
-                            <img src={activeProduct.image_url} alt={activeProduct.name} className="w-full h-full object-contain drop-shadow-2xl" />
+                            <Image src={activeProduct.image_url} alt={activeProduct.name} fill className="object-contain drop-shadow-2xl" sizes="128px" />
                           ) : (
                             <ShoppingBag className="w-full h-full text-col-yellow drop-shadow-2xl" strokeWidth={1.5} />
                           )}
@@ -621,12 +629,15 @@ export default function Storefront({ products, categories }: Props) {
                     return (
                       <div
                         key={product.id}
-                        className="bg-gray-50 rounded-2xl overflow-hidden shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 cursor-pointer group"
+                        className="bg-gray-50 rounded-2xl overflow-hidden shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-col-blue"
+                        role="button"
+                        tabIndex={0}
                         onClick={() => { setActiveProductId(product.id); navigate("product"); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveProductId(product.id); navigate("product"); } }}
                       >
                         <div className="aspect-square md:aspect-[4/5] bg-gray-100 flex items-center justify-center relative overflow-hidden">
                           {thumb ? (
-                            <img src={thumb} alt={product.name} className="w-3/4 h-3/4 object-contain drop-shadow-lg group-hover:scale-110 transition-transform duration-500" />
+                            <Image src={thumb} alt={product.name} fill className="object-contain drop-shadow-lg group-hover:scale-110 transition-transform duration-500 p-[12%]" sizes="(max-width: 768px) 100vw, 33vw" />
                           ) : (
                             <ShoppingBag className="w-24 h-24 text-col-yellow" />
                           )}
@@ -648,8 +659,11 @@ export default function Storefront({ products, categories }: Props) {
 
                   {/* Tarjeta de Colecciones */}
                   <div
-                    className="bg-gradient-to-br from-dark-bg to-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-700 hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+                    className="bg-gradient-to-br from-dark-bg to-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-700 hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus:ring-2 focus:ring-col-yellow"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => navigate("collections")}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate("collections"); } }}
                   >
                     <div className="aspect-square md:aspect-[4/5] flex items-center justify-center relative overflow-hidden">
                       <div className="text-center px-8">
@@ -733,13 +747,16 @@ export default function Storefront({ products, categories }: Props) {
                     return (
                       <div
                         key={product.id}
-                        className={`bg-white rounded-2xl p-6 shadow-lg border hover:shadow-xl transition-all duration-300 relative group cursor-pointer ${
+                        className={`bg-white rounded-2xl p-6 shadow-lg border hover:shadow-xl transition-all duration-300 relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-col-blue ${
                           product.badge === "Más Vendida" ? "border-col-yellow" : "border-gray-100"
                         }`}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => {
                           setActiveProductId(product.id);
                           navigate("product");
                         }}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveProductId(product.id); navigate("product"); } }}
                       >
                         {product.badge === "Nuevo" && (
                           <div className="absolute top-4 right-4 bg-col-red text-white text-xs font-bold px-3 py-1 rounded-full z-10">
@@ -756,7 +773,7 @@ export default function Storefront({ products, categories }: Props) {
                           {(() => {
                             const thumb = product.image_url || product.media?.find((m) => m.media_type === "image")?.url;
                             return thumb ? (
-                              <img src={thumb} alt={product.name} className="w-3/4 h-3/4 object-contain drop-shadow-md" />
+                              <Image src={thumb} alt={product.name} fill className="object-contain drop-shadow-md p-[12%]" sizes="(max-width: 768px) 100vw, 33vw" />
                             ) : (
                               <ShoppingBag className={`w-32 h-32 drop-shadow-md ${isDark ? "text-gray-800 border-[1px] border-gray-700/50 fill-gray-800 rounded-md" : "text-col-yellow"}`} />
                             );
@@ -836,10 +853,10 @@ export default function Storefront({ products, categories }: Props) {
                               loop
                             />
                           ) : (
-                            <img src={current.url} alt={activeProduct.name} className="w-3/4 h-3/4 object-contain drop-shadow-2xl relative z-10 transform transition-transform duration-700 hover:scale-125" />
+                            <Image src={current.url} alt={activeProduct.name} fill className="object-contain drop-shadow-2xl z-10 transform transition-transform duration-700 hover:scale-125 p-[12%]" sizes="(max-width: 1024px) 100vw, 50vw" priority />
                           )
                         ) : fallbackImg ? (
-                          <img src={fallbackImg} alt={activeProduct.name} className="w-3/4 h-3/4 object-contain drop-shadow-2xl relative z-10 transform transition-transform duration-700 hover:scale-125" />
+                          <Image src={fallbackImg} alt={activeProduct.name} fill className="object-contain drop-shadow-2xl z-10 transform transition-transform duration-700 hover:scale-125 p-[12%]" sizes="(max-width: 1024px) 100vw, 50vw" priority />
                         ) : (
                           <ShoppingBag className="w-64 h-64 text-col-yellow drop-shadow-2xl relative z-10 transform transition-transform duration-700 hover:scale-125" />
                         )}
@@ -864,7 +881,7 @@ export default function Storefront({ products, categories }: Props) {
                                   <span className="text-xs font-bold text-gray-500">▶ Video</span>
                                 </div>
                               ) : (
-                                <img src={m.url} alt="" className="w-3/4 h-3/4 object-contain" />
+                                <Image src={m.url} alt={`Miniatura ${idx + 1}`} fill className="object-contain p-[12%]" sizes="80px" />
                               )}
                             </button>
                           ))}
@@ -948,7 +965,7 @@ export default function Storefront({ products, categories }: Props) {
                                 onClick={() => setSelectedVariantId(variant.id)}
                                 className={`min-w-[56px] rounded-xl py-3 px-4 text-center transition-all ${
                                   outOfStock
-                                    ? "border border-gray-200 text-gray-300 cursor-not-allowed line-through"
+                                    ? "border border-gray-200 text-gray-400 cursor-not-allowed line-through"
                                     : selectedVariantId === variant.id
                                     ? "border-2 border-col-blue bg-blue-50 text-col-blue font-bold shadow-sm"
                                     : "border border-gray-300 font-medium hover:border-col-blue hover:text-col-blue"
@@ -960,7 +977,7 @@ export default function Storefront({ products, categories }: Props) {
                           })}
                         </div>
                         {sizesForGender.length === 0 && (
-                          <p className="text-gray-400 text-sm mt-2">No hay tallas disponibles para {selectedGender}.</p>
+                          <p className="text-gray-500 text-sm mt-2">No hay tallas disponibles para {selectedGender}.</p>
                         )}
                       </div>
                     </>
@@ -980,7 +997,8 @@ export default function Storefront({ products, categories }: Props) {
                       type="text" 
                       value={productQty} 
                       className="w-full text-center font-bold focus:outline-none" 
-                      readOnly 
+                      readOnly
+                      aria-label="Cantidad"
                     />
                     <button 
                       className="w-10 h-12 flex items-center justify-center text-gray-500 hover:text-col-blue"
@@ -1005,11 +1023,12 @@ export default function Storefront({ products, categories }: Props) {
                       onClick={() => setOpenAccordion(openAccordion === "details" ? null : "details")}
                       className="flex justify-between items-center w-full py-4 text-gray-900 hover:text-col-blue font-bold"
                       aria-expanded={openAccordion === "details"}
+                      aria-controls="accordion-details"
                     >
                       <span>Detalles del producto</span>
                       <ChevronRight className={`w-5 h-5 transition-transform duration-200 ${openAccordion === "details" ? "rotate-90" : "rotate-0"}`} />
                     </button>
-                    <div className={`overflow-hidden transition-all duration-300 ${openAccordion === "details" ? "max-h-60 pb-4" : "max-h-0"}`}>
+                    <div id="accordion-details" role="region" aria-label="Detalles del producto" className={`overflow-hidden transition-all duration-300 ${openAccordion === "details" ? "max-h-60 pb-4" : "max-h-0"}`}>
                       <p className="text-gray-600 text-sm leading-relaxed">{activeProduct.description || "Producto de alta calidad diseñado para el máximo rendimiento y comodidad."}</p>
                     </div>
                   </div>
@@ -1018,11 +1037,12 @@ export default function Storefront({ products, categories }: Props) {
                       onClick={() => setOpenAccordion(openAccordion === "shipping" ? null : "shipping")}
                       className="flex justify-between items-center w-full py-4 text-gray-900 hover:text-col-blue font-bold"
                       aria-expanded={openAccordion === "shipping"}
+                      aria-controls="accordion-shipping"
                     >
                       <span>Envíos y devoluciones</span>
                       <ChevronRight className={`w-5 h-5 transition-transform duration-200 ${openAccordion === "shipping" ? "rotate-90" : "rotate-0"}`} />
                     </button>
-                    <div className={`overflow-hidden transition-all duration-300 ${openAccordion === "shipping" ? "max-h-60 pb-4" : "max-h-0"}`}>
+                    <div id="accordion-shipping" role="region" aria-label="Envíos y devoluciones" className={`overflow-hidden transition-all duration-300 ${openAccordion === "shipping" ? "max-h-60 pb-4" : "max-h-0"}`}>
                       <ul className="text-gray-600 text-sm leading-relaxed space-y-1">
                         <li>• Envío gratis a partir de $200.000 COP</li>
                         <li>• Entrega en 3-5 días hábiles a nivel nacional</li>
@@ -1070,9 +1090,9 @@ export default function Storefront({ products, categories }: Props) {
                         
                         return (
                           <div key={item.variantId} className="p-4 md:p-6 flex flex-col sm:flex-row items-center gap-4 md:gap-6">
-                            <div className={`w-20 h-20 md:w-24 md:h-24 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden`}>
+                            <div className={`relative w-20 h-20 md:w-24 md:h-24 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden`}>
                               {item.imageUrl ? (
-                                <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover rounded-xl" />
+                                <Image src={item.imageUrl} alt={item.name} fill className="object-cover rounded-xl" sizes="96px" />
                               ) : (
                                 <ShoppingBag className={`w-12 h-12 ${iconColor}`} />
                               )}
@@ -1095,7 +1115,7 @@ export default function Storefront({ products, categories }: Props) {
                                 </button>
                               </div>
                               
-                              <button onClick={() => removeItem(item.variantId)} className="text-gray-400 hover:text-col-red transition-colors p-2" title="Eliminar" aria-label={`Eliminar ${item.name} del carrito`}>
+                              <button onClick={() => removeItem(item.variantId)} className="text-gray-500 hover:text-col-red transition-colors p-2" title="Eliminar" aria-label={`Eliminar ${item.name} del carrito`}>
                                 <Trash2 className="w-5 h-5" />
                               </button>
                             </div>
@@ -1194,15 +1214,18 @@ export default function Storefront({ products, categories }: Props) {
                     return (
                       <div
                         key={product.id}
-                        className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 cursor-pointer group"
+                        className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-col-blue"
+                        role="button"
+                        tabIndex={0}
                         onClick={() => { setActiveProductId(product.id); navigate("product"); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveProductId(product.id); navigate("product"); } }}
                       >
                         {product.badge && (
                           <div className="absolute top-4 right-4 bg-col-red text-white text-xs font-bold px-3 py-1 rounded-full z-10">{product.badge}</div>
                         )}
-                        <div className="aspect-square rounded-xl mb-6 flex items-center justify-center overflow-hidden bg-gray-100 group-hover:scale-[1.02] transition-transform">
+                        <div className="relative aspect-square rounded-xl mb-6 flex items-center justify-center overflow-hidden bg-gray-100 group-hover:scale-[1.02] transition-transform">
                           {thumb ? (
-                            <img src={thumb} alt={product.name} className="w-3/4 h-3/4 object-contain drop-shadow-md" />
+                            <Image src={thumb} alt={product.name} fill className="object-contain drop-shadow-md p-[12%]" sizes="(max-width: 768px) 100vw, 33vw" />
                           ) : (
                             <ShoppingBag className="w-32 h-32 text-col-yellow" />
                           )}
@@ -1233,7 +1256,7 @@ export default function Storefront({ products, categories }: Props) {
           
           <div className="bg-dark-bg border border-gray-700 rounded-3xl p-8 md:p-12 w-full max-w-md relative z-10 shadow-2xl backdrop-blur-xl">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-full bg-col-yellow mx-auto flex items-center justify-center mb-4 border-2 border-col-blue shadow-[0_0_15px_rgba(252,209,22,0.4)] cursor-pointer" onClick={() => navigate("home")}>
+              <div className="w-16 h-16 rounded-full bg-col-yellow mx-auto flex items-center justify-center mb-4 border-2 border-col-blue shadow-[0_0_15px_rgba(252,209,22,0.4)] cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate("home"); } }} aria-label="Ir al inicio">
                 <span className="font-display font-bold text-col-blue text-2xl">FCF</span>
               </div>
               <h2 className="font-display text-2xl font-bold text-white">{userEmail ? "Tu cuenta" : "Inicia Sesión"}</h2>
@@ -1275,7 +1298,7 @@ export default function Storefront({ products, categories }: Props) {
                   <div>
                     <div className="flex justify-between items-center mb-1">
                       <label className="block text-sm font-medium text-gray-300">Contraseña</label>
-                      <a href="#" className="text-col-yellow text-xs hover:underline">¿Olvidaste tu contraseña?</a>
+                      <button type="button" className="text-col-yellow text-xs hover:underline" onClick={() => setToast("Próximamente")}>¿Olvidaste tu contraseña?</button>
                     </div>
                     <input
                       type="password"
@@ -1324,7 +1347,7 @@ export default function Storefront({ products, categories }: Props) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             <div className="col-span-1 md:col-span-1">
-              <div className="flex items-center mb-6 cursor-pointer" onClick={() => navigate("home")}>
+              <div className="flex items-center mb-6 cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate("home"); } }} aria-label="Ir al inicio">
                 <div className="w-8 h-8 rounded-full bg-col-yellow flex items-center justify-center mr-2">
                   <span className="font-display font-bold text-col-blue text-xs">CF</span>
                 </div>
@@ -1342,8 +1365,8 @@ export default function Storefront({ products, categories }: Props) {
             <div>
               <h4 className="font-bold text-lg mb-4 text-gray-200">Soporte</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-col-yellow transition-colors">Guía de Tallas</a></li>
-                <li><a href="#" className="hover:text-col-yellow transition-colors">Envíos y Devoluciones</a></li>
+                <li><button onClick={() => setToast("Próximamente")} className="hover:text-col-yellow transition-colors">Guía de Tallas</button></li>
+                <li><button onClick={() => setToast("Próximamente")} className="hover:text-col-yellow transition-colors">Envíos y Devoluciones</button></li>
               </ul>
             </div>
             <div>

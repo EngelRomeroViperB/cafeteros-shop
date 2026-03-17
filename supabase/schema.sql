@@ -40,6 +40,12 @@ create table if not exists public.product_variants (
 create unique index if not exists product_variants_product_size_gender_uniq
 on public.product_variants (product_id, size, gender);
 
+create index if not exists idx_products_is_active on public.products (is_active);
+create index if not exists idx_products_category_id on public.products (category_id);
+create index if not exists idx_product_media_product_id on public.product_media (product_id);
+create index if not exists idx_orders_user_id on public.orders (user_id);
+create index if not exists idx_order_items_order_id on public.order_items (order_id);
+
 create table if not exists public.product_media (
   id uuid primary key default gen_random_uuid(),
   product_id uuid not null references public.products(id) on delete cascade,

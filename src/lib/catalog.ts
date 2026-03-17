@@ -51,31 +51,34 @@ export async function getFeaturedProducts(): Promise<Product[]> {
 
     const productIds = products.map((product) => product.id);
 
-    const { data: variants, error: variantsError } = await supabase
-      .from("product_variants")
-      .select("id, product_id, size, gender, price_cop, stock, is_active")
-      .in("product_id", productIds)
-      .eq("is_active", true)
-      .order("price_cop", { ascending: true });
+    const [variantsResult, mediaResult] = await Promise.all([
+      supabase
+        .from("product_variants")
+        .select("id, product_id, size, gender, price_cop, stock, is_active")
+        .in("product_id", productIds)
+        .eq("is_active", true)
+        .order("price_cop", { ascending: true }),
+      supabase
+        .from("product_media")
+        .select("id, product_id, url, media_type, sort_order, is_primary, gender")
+        .in("product_id", productIds)
+        .order("sort_order", { ascending: true }),
+    ]);
 
-    if (variantsError) {
-      console.error(`Failed to fetch variants: ${variantsError.message}`);
+    if (variantsResult.error) {
+      console.error(`Failed to fetch variants: ${variantsResult.error.message}`);
       return fallbackProducts;
     }
 
     const variantsByProduct = new Map<string, ProductVariant[]>();
 
-    (variants ?? []).forEach((variant) => {
+    (variantsResult.data ?? []).forEach((variant) => {
       const current = variantsByProduct.get(variant.product_id) ?? [];
       current.push(variant as ProductVariant);
       variantsByProduct.set(variant.product_id, current);
     });
 
-    const { data: media } = await supabase
-      .from("product_media")
-      .select("id, product_id, url, media_type, sort_order, is_primary, gender")
-      .in("product_id", productIds)
-      .order("sort_order", { ascending: true });
+    const media = mediaResult.data;
 
     const mediaByProduct = new Map<string, ProductMedia[]>();
     (media ?? []).forEach((m) => {
