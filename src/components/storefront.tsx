@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -47,6 +47,8 @@ function getStartingVariant(product: Product) {
 export default function Storefront({ products, categories }: Props) {
   const [view, setView] = useState<ViewName>("home");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuBtnRef = useRef<HTMLButtonElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [toast, setToast] = useState<string>("");
   const [activeProductId, setActiveProductId] = useState<string | null>(products[0]?.id ?? null);
@@ -152,6 +154,46 @@ export default function Storefront({ products, categories }: Props) {
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
+
+  // Focus trap for mobile menu
+  useEffect(() => {
+    if (!mobileMenuOpen) {
+      // Restore focus to the menu button when closing
+      mobileMenuBtnRef.current?.focus();
+      return;
+    }
+
+    const container = mobileMenuRef.current;
+    if (!container) return;
+
+    const focusables = container.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+
+    first?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      if (focusables.length === 0) return;
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+
+    container.addEventListener("keydown", handleKeyDown);
+    return () => container.removeEventListener("keydown", handleKeyDown);
+  }, [mobileMenuOpen]);
 
   const goHomeAndScroll = (sectionId: string) => {
     navigate("home");
@@ -369,7 +411,8 @@ export default function Storefront({ products, categories }: Props) {
             <div className="hidden md:flex space-x-8 items-center">
               <button
                 onClick={() => navigate("home")}
-                className="text-gray-300 hover:text-col-yellow transition-colors font-medium"
+                className={`transition-colors font-medium ${view === "home" ? "text-col-yellow" : "text-gray-300 hover:text-col-yellow"}`}
+                aria-current={view === "home" ? "page" : undefined}
               >
                 Inicio
               </button>
@@ -387,7 +430,8 @@ export default function Storefront({ products, categories }: Props) {
               </button>
               <button
                 onClick={() => navigate("collections")}
-                className="text-gray-300 hover:text-col-yellow transition-colors font-medium"
+                className={`transition-colors font-medium ${view === "collections" ? "text-col-yellow" : "text-gray-300 hover:text-col-yellow"}`}
+                aria-current={view === "collections" ? "page" : undefined}
               >
                 Conjuntos
               </button>
@@ -423,7 +467,8 @@ export default function Storefront({ products, categories }: Props) {
               </button>
 
               {/* Botón Móvil */}
-              <button 
+              <button
+                ref={mobileMenuBtnRef}
                 className="md:hidden text-white hover:text-col-yellow"
                 onClick={() => setMobileMenuOpen((current) => !current)}
                 aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
@@ -436,6 +481,7 @@ export default function Storefront({ products, categories }: Props) {
         </div>
         {mobileMenuOpen && (
           <div
+            ref={mobileMenuRef}
             className="border-t border-gray-800 bg-dark-bg px-4 pb-4 pt-3 md:hidden"
             role="menu"
             onKeyDown={(e) => { if (e.key === "Escape") setMobileMenuOpen(false); }}

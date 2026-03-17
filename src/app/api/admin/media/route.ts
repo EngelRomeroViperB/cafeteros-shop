@@ -16,7 +16,10 @@ export async function POST(req: NextRequest) {
   if (!checkRate(`admin:${ip}`, 30, 60_000)) {
     return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
   }
-  if (!checkAdminKey(req)) return unauthorized();
+  if (!checkAdminKey(req)) {
+    console.warn(`[ADMIN AUTH FAIL] POST /api/admin/media — IP: ${ip}`);
+    return unauthorized();
+  }
 
   const body = await req.json();
 
@@ -55,7 +58,10 @@ export async function PATCH(req: NextRequest) {
   if (!checkRate(`admin:${ip}`, 30, 60_000)) {
     return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
   }
-  if (!checkAdminKey(req)) return unauthorized();
+  if (!checkAdminKey(req)) {
+    console.warn(`[ADMIN AUTH FAIL] PATCH /api/admin/media — IP: ${ip}`);
+    return unauthorized();
+  }
 
   const body = await req.json();
   const supabase = createAdminSupabaseClient();
@@ -87,7 +93,10 @@ export async function DELETE(req: NextRequest) {
   if (!checkRate(`admin:${ip}`, 30, 60_000)) {
     return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
   }
-  if (!checkAdminKey(req)) return unauthorized();
+  if (!checkAdminKey(req)) {
+    console.warn(`[ADMIN AUTH FAIL] DELETE /api/admin/media — IP: ${ip}`);
+    return unauthorized();
+  }
 
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");

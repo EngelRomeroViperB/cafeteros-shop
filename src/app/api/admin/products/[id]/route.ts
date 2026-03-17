@@ -16,7 +16,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!checkRate(`admin:${ip}`, 30, 60_000)) {
     return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
   }
-  if (!checkAdminKey(req)) return unauthorized();
+  if (!checkAdminKey(req)) {
+    console.warn(`[ADMIN AUTH FAIL] PUT /api/admin/products/${(await params).id} — IP: ${ip}`);
+    return unauthorized();
+  }
 
   const { id } = await params;
   const body = await req.json();
@@ -50,7 +53,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!checkRate(`admin:${ip}`, 30, 60_000)) {
     return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
   }
-  if (!checkAdminKey(req)) return unauthorized();
+  if (!checkAdminKey(req)) {
+    console.warn(`[ADMIN AUTH FAIL] DELETE /api/admin/products/${(await params).id} — IP: ${ip}`);
+    return unauthorized();
+  }
 
   const { id } = await params;
   const supabase = createAdminSupabaseClient();

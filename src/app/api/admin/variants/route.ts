@@ -30,7 +30,10 @@ function checkAdminKey(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
   if (!checkRate(`admin:${ip}`, 30, 60_000)) return tooMany();
-  if (!checkAdminKey(req)) return unauthorized();
+  if (!checkAdminKey(req)) {
+    console.warn(`[ADMIN AUTH FAIL] POST /api/admin/variants — IP: ${ip}`);
+    return unauthorized();
+  }
 
   const body = await req.json();
   const err = validateVariantBody(body);
@@ -62,7 +65,10 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
   if (!checkRate(`admin:${ip}`, 30, 60_000)) return tooMany();
-  if (!checkAdminKey(req)) return unauthorized();
+  if (!checkAdminKey(req)) {
+    console.warn(`[ADMIN AUTH FAIL] PUT /api/admin/variants — IP: ${ip}`);
+    return unauthorized();
+  }
 
   const body = await req.json();
   const err = validateVariantBody(body);
@@ -94,7 +100,10 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
   if (!checkRate(`admin:${ip}`, 30, 60_000)) return tooMany();
-  if (!checkAdminKey(req)) return unauthorized();
+  if (!checkAdminKey(req)) {
+    console.warn(`[ADMIN AUTH FAIL] DELETE /api/admin/variants — IP: ${ip}`);
+    return unauthorized();
+  }
 
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");

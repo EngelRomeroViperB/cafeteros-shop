@@ -21,7 +21,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
   }
   const auth = checkAdminKey(req);
-  if (!auth.ok) return unauthorized(auth.detail);
+  if (!auth.ok) {
+    console.warn(`[ADMIN AUTH FAIL] GET /api/admin/products — IP: ${ip} — ${auth.detail}`);
+    return unauthorized(auth.detail);
+  }
 
   try {
     const supabase = createAdminSupabaseClient();
@@ -91,7 +94,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
   }
   const auth = checkAdminKey(req);
-  if (!auth.ok) return unauthorized(auth.detail);
+  if (!auth.ok) {
+    console.warn(`[ADMIN AUTH FAIL] POST /api/admin/products — IP: ${ip} — ${auth.detail}`);
+    return unauthorized(auth.detail);
+  }
 
   const body = await req.json();
 
