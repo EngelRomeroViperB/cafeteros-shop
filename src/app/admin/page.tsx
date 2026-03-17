@@ -19,74 +19,16 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import type {
+  Category,
+  Product,
+  ProductDraft,
+  ProductMedia as Media,
+  ProductVariant as Variant,
+} from "@/types/store";
+import { formatCOP, slugify } from "@/lib/format";
 
-/* ───────── types ───────── */
-
-type Category = { id: string; name: string; slug: string };
-
-type Variant = {
-  id: string;
-  product_id: string;
-  size: string;
-  gender: "Dama" | "Caballero";
-  price_cop: number;
-  stock: number;
-  is_active: boolean;
-};
-
-type Media = {
-  id: string;
-  product_id: string;
-  url: string;
-  media_type: "image" | "video";
-  sort_order: number;
-  is_primary: boolean;
-  gender: "Dama" | "Caballero" | null;
-};
-
-type Product = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  badge: string | null;
-  image_url: string | null;
-  is_featured: boolean;
-  is_active: boolean;
-  category_id: string | null;
-  variants: Variant[];
-  media: Media[];
-};
-
-type ProductDraft = {
-  name: string;
-  slug: string;
-  description: string;
-  badge: string;
-  image_url: string;
-  is_featured: boolean;
-  is_active: boolean;
-  category_id: string;
-};
-
-/* ───────── helpers ───────── */
-
-function slugify(text: string) {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "");
-}
-
-function formatCOP(amount: number) {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    minimumFractionDigits: 0,
-  }).format(amount);
-}
+type AdminProduct = Omit<Product, "media"> & { media: Media[] };
 
 const EMPTY_DRAFT: ProductDraft = {
   name: "",
@@ -107,7 +49,7 @@ export default function AdminPage() {
   const [keyInput, setKeyInput] = useState("");
   const [showKey, setShowKey] = useState(false);
 
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<AdminProduct[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);

@@ -38,6 +38,17 @@ export type Category = {
   slug: string;
 };
 
+export type ProductDraft = {
+  name: string;
+  slug: string;
+  description: string;
+  badge: string;
+  image_url: string;
+  is_featured: boolean;
+  is_active: boolean;
+  category_id: string;
+};
+
 export type CartItem = {
   productId: string;
   variantId: string;

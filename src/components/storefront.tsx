@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
+import { formatCOP } from "@/lib/format";
+import { onActivate } from "@/lib/keyboard";
 import type { CartItem, Category, Product, ProductMedia } from "@/types/store";
 
 type Props = {
@@ -32,16 +34,6 @@ type Props = {
 type ViewName = "home" | "product" | "cart" | "login" | "collections";
 
 const supabase = createBrowserSupabaseClient();
-
-const copFormatter = new Intl.NumberFormat("es-CO", {
-  style: "currency",
-  currency: "COP",
-  minimumFractionDigits: 0,
-});
-
-function formatCOP(amount: number) {
-  return copFormatter.format(amount);
-}
 
 function getStartingVariant(product: Product) {
   return product.variants[0] ?? null;
@@ -405,7 +397,7 @@ export default function Storefront({ products, categories }: Props) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
-            <div className="flex-shrink-0 flex items-center cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate("home"); } }} aria-label="Ir al inicio">
+            <div className="flex-shrink-0 flex items-center cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={onActivate(() => navigate("home"))} aria-label="Ir al inicio">
               <div className="w-10 h-10 rounded-full bg-col-yellow flex items-center justify-center mr-3 border-2 border-col-blue shadow-[0_0_10px_rgba(252,209,22,0.5)] transition-transform hover:scale-110">
                 <span className="font-display font-bold text-col-blue text-lg">CF</span>
               </div>
@@ -581,7 +573,7 @@ export default function Storefront({ products, categories }: Props) {
                       }
                       navigate("product");
                     }}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (activeProduct?.id) setActiveProductId(activeProduct.id); navigate("product"); } }}
+                    onKeyDown={onActivate(() => { if (activeProduct?.id) setActiveProductId(activeProduct.id); navigate("product"); })}
                     aria-label={`Ver ${activeProduct?.name ?? "producto"}`}
                   >
                     <div className="relative w-full max-w-[240px] mx-auto aspect-[4/5] bg-gradient-to-tr from-gray-800 to-gray-700 rounded-2xl p-5 shadow-2xl border border-gray-600/50 flex flex-col items-center justify-center transform lg:rotate-2 hover:rotate-0 hover:scale-105 transition-all duration-500 overflow-hidden group">
@@ -633,7 +625,7 @@ export default function Storefront({ products, categories }: Props) {
                         role="button"
                         tabIndex={0}
                         onClick={() => { setActiveProductId(product.id); navigate("product"); }}
-                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveProductId(product.id); navigate("product"); } }}
+                        onKeyDown={onActivate(() => { setActiveProductId(product.id); navigate("product"); })}
                       >
                         <div className="aspect-square md:aspect-[4/5] bg-gray-100 flex items-center justify-center relative overflow-hidden">
                           {thumb ? (
@@ -663,7 +655,7 @@ export default function Storefront({ products, categories }: Props) {
                     role="button"
                     tabIndex={0}
                     onClick={() => navigate("collections")}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate("collections"); } }}
+                    onKeyDown={onActivate(() => navigate("collections"))}
                   >
                     <div className="aspect-square md:aspect-[4/5] flex items-center justify-center relative overflow-hidden">
                       <div className="text-center px-8">
@@ -756,7 +748,7 @@ export default function Storefront({ products, categories }: Props) {
                           setActiveProductId(product.id);
                           navigate("product");
                         }}
-                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveProductId(product.id); navigate("product"); } }}
+                        onKeyDown={onActivate(() => { setActiveProductId(product.id); navigate("product"); })}
                       >
                         {product.badge === "Nuevo" && (
                           <div className="absolute top-4 right-4 bg-col-red text-white text-xs font-bold px-3 py-1 rounded-full z-10">
@@ -1218,7 +1210,7 @@ export default function Storefront({ products, categories }: Props) {
                         role="button"
                         tabIndex={0}
                         onClick={() => { setActiveProductId(product.id); navigate("product"); }}
-                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveProductId(product.id); navigate("product"); } }}
+                        onKeyDown={onActivate(() => { setActiveProductId(product.id); navigate("product"); })}
                       >
                         {product.badge && (
                           <div className="absolute top-4 right-4 bg-col-red text-white text-xs font-bold px-3 py-1 rounded-full z-10">{product.badge}</div>
@@ -1256,7 +1248,7 @@ export default function Storefront({ products, categories }: Props) {
           
           <div className="bg-dark-bg border border-gray-700 rounded-3xl p-8 md:p-12 w-full max-w-md relative z-10 shadow-2xl backdrop-blur-xl">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-full bg-col-yellow mx-auto flex items-center justify-center mb-4 border-2 border-col-blue shadow-[0_0_15px_rgba(252,209,22,0.4)] cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate("home"); } }} aria-label="Ir al inicio">
+              <div className="w-16 h-16 rounded-full bg-col-yellow mx-auto flex items-center justify-center mb-4 border-2 border-col-blue shadow-[0_0_15px_rgba(252,209,22,0.4)] cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={onActivate(() => navigate("home"))} aria-label="Ir al inicio">
                 <span className="font-display font-bold text-col-blue text-2xl">FCF</span>
               </div>
               <h2 className="font-display text-2xl font-bold text-white">{userEmail ? "Tu cuenta" : "Inicia Sesión"}</h2>
@@ -1347,7 +1339,7 @@ export default function Storefront({ products, categories }: Props) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             <div className="col-span-1 md:col-span-1">
-              <div className="flex items-center mb-6 cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate("home"); } }} aria-label="Ir al inicio">
+              <div className="flex items-center mb-6 cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={onActivate(() => navigate("home"))} aria-label="Ir al inicio">
                 <div className="w-8 h-8 rounded-full bg-col-yellow flex items-center justify-center mr-2">
                   <span className="font-display font-bold text-col-blue text-xs">CF</span>
                 </div>

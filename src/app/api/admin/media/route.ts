@@ -1,21 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { checkRate } from "@/lib/rate-limit";
-import { verifyAdminKey, isUUID } from "@/lib/admin-auth";
-
-function unauthorized() {
-  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-}
+import { isUUID } from "@/lib/admin-auth";
+import { guardAdmin } from "@/lib/admin-api";
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-  if (!checkRate(`admin:${ip}`, 30, 60_000)) {
-    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
-  }
-  if (!verifyAdminKey(req)) {
-    console.warn(`[ADMIN AUTH FAIL] POST /api/admin/media — IP: ${ip}`);
-    return unauthorized();
-  }
+  const denied = guardAdmin(req, "POST /api/admin/media");
+  if (denied) return denied;
 
   const body = await req.json();
 
@@ -53,14 +43,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-  if (!checkRate(`admin:${ip}`, 30, 60_000)) {
-    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
-  }
-  if (!verifyAdminKey(req)) {
-    console.warn(`[ADMIN AUTH FAIL] PATCH /api/admin/media — IP: ${ip}`);
-    return unauthorized();
-  }
+  const denied = guardAdmin(req, "PATCH /api/admin/media");
+  if (denied) return denied;
 
   const body = await req.json();
   const supabase = createAdminSupabaseClient();
@@ -88,14 +72,8 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-  if (!checkRate(`admin:${ip}`, 30, 60_000)) {
-    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
-  }
-  if (!verifyAdminKey(req)) {
-    console.warn(`[ADMIN AUTH FAIL] DELETE /api/admin/media — IP: ${ip}`);
-    return unauthorized();
-  }
+  const denied = guardAdmin(req, "DELETE /api/admin/media");
+  if (denied) return denied;
 
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");

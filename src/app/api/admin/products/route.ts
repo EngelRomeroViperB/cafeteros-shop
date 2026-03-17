@@ -1,21 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { checkRate } from "@/lib/rate-limit";
-import { verifyAdminKey, isUUID } from "@/lib/admin-auth";
-
-function unauthorized() {
-  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-}
+import { isUUID } from "@/lib/admin-auth";
+import { guardAdmin } from "@/lib/admin-api";
 
 export async function GET(req: NextRequest) {
-  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-  if (!checkRate(`admin:${ip}`, 30, 60_000)) {
-    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
-  }
-  if (!verifyAdminKey(req)) {
-    console.warn(`[ADMIN AUTH FAIL] GET /api/admin/products — IP: ${ip}`);
-    return unauthorized();
-  }
+  const denied = guardAdmin(req, "GET /api/admin/products");
+  if (denied) return denied;
 
   try {
     const supabase = createAdminSupabaseClient();
@@ -80,14 +70,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-  if (!checkRate(`admin:${ip}`, 30, 60_000)) {
-    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
-  }
-  if (!verifyAdminKey(req)) {
-    console.warn(`[ADMIN AUTH FAIL] POST /api/admin/products — IP: ${ip}`);
-    return unauthorized();
-  }
+  const denied = guardAdmin(req, "POST /api/admin/products");
+  if (denied) return denied;
 
   const body = await req.json();
 

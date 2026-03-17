@@ -2,13 +2,13 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-export const createBrowserSupabaseClient = () => {
+export function createBrowserSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
-    return null;
+    throw new Error("Supabase client configuration is incomplete");
   }
 
   return createClient(url, anonKey);
-};
+}
