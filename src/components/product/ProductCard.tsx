@@ -1,0 +1,187 @@
+"use client";
+
+import Image from "next/image";
+import { ShoppingBag, ShoppingCart, ArrowRight } from "lucide-react";
+import { formatCOP } from "@/lib/format";
+import { onActivate } from "@/lib/keyboard";
+import type { Product } from "@/types/store";
+import { useState } from "react";
+
+type Props = {
+  product: Product;
+  onClickProduct: (productId: string) => void;
+  onQuickAdd?: (product: Product) => void;
+  variant?: "featured" | "catalog";
+};
+
+function getThumb(product: Product): string | null {
+  const primary = product.media?.find((m) => m.media_type === "image" && m.is_primary);
+  const first = primary ?? product.media?.find((m) => m.media_type === "image");
+  return first?.url ?? product.image_url ?? null;
+}
+
+function getSecondImage(product: Product): string | null {
+  const images = product.media?.filter((m) => m.media_type === "image") ?? [];
+  if (images.length < 2) return null;
+  const primaryIdx = images.findIndex((m) => m.is_primary);
+  const secondIdx = primaryIdx >= 0 ? (primaryIdx === 0 ? 1 : 0) : 1;
+  return images[secondIdx]?.url ?? null;
+}
+
+export default function ProductCard({ product, onClickProduct, onQuickAdd, variant = "catalog" }: Props) {
+  const [hovered, setHovered] = useState(false);
+  const firstVariant = product.variants[0] ?? null;
+  const thumb = getThumb(product);
+  const secondImg = getSecondImage(product);
+  const isDark = product.name.toLowerCase().includes("visitante");
+
+  if (variant === "featured") {
+    return (
+      <div
+        className="bg-gray-50 rounded-2xl overflow-hidden shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-col-blue"
+        role="button"
+        tabIndex={0}
+        onClick={() => onClickProduct(product.id)}
+        onKeyDown={onActivate(() => onClickProduct(product.id))}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        <div className="aspect-square md:aspect-[4/5] bg-gray-100 flex items-center justify-center relative overflow-hidden">
+          {thumb ? (
+            <>
+              <Image
+                src={thumb}
+                alt={product.name}
+                fill
+                className={`object-contain drop-shadow-lg transition-all duration-500 p-[12%] ${
+                  hovered && secondImg ? "opacity-0 scale-105" : "opacity-100 scale-100 group-hover:scale-110"
+                }`}
+                sizes="(max-width: 768px) 100vw, 33vw"
+              />
+              {secondImg && (
+                <Image
+                  src={secondImg}
+                  alt={`${product.name} alt`}
+                  fill
+                  className={`object-contain drop-shadow-lg transition-all duration-500 p-[12%] ${
+                    hovered ? "opacity-100 scale-100" : "opacity-0 scale-95"
+                  }`}
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                />
+              )}
+            </>
+          ) : (
+            <ShoppingBag className="w-24 h-24 text-col-yellow" />
+          )}
+          {product.badge && (
+            <span className="absolute top-4 left-4 bg-col-red text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+              {product.badge}
+            </span>
+          )}
+        </div>
+        <div className="p-6">
+          <h3 className="font-bold text-xl text-dark-bg mb-1">{product.name}</h3>
+          <p className="text-gray-500 text-sm mb-3">{product.description}</p>
+          <div className="flex justify-between items-center">
+            <span className="font-bold text-col-blue text-lg">
+              {firstVariant ? formatCOP(firstVariant.price_cop) : ""}
+            </span>
+            <span className="text-col-blue font-medium text-sm flex items-center gap-1">
+              Ver producto <ArrowRight className="w-4 h-4" />
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`bg-white rounded-2xl p-6 shadow-lg border hover:shadow-xl transition-all duration-300 relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-col-blue ${
+        product.badge === "Más Vendida" ? "border-col-yellow" : "border-gray-100"
+      }`}
+      role="button"
+      tabIndex={0}
+      onClick={() => onClickProduct(product.id)}
+      onKeyDown={onActivate(() => onClickProduct(product.id))}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {product.badge === "Nuevo" && (
+        <div className="absolute top-4 right-4 bg-col-red text-white text-xs font-bold px-3 py-1 rounded-full z-10">
+          Nuevo
+        </div>
+      )}
+      {product.badge === "Más Vendida" && (
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-col-yellow text-col-blue text-xs font-bold px-4 py-1 rounded-t-lg z-10 uppercase tracking-wide shadow-sm">
+          Más Vendida
+        </div>
+      )}
+
+      <div
+        className={`aspect-square rounded-xl mb-6 flex items-center justify-center overflow-hidden relative group-hover:scale-[1.02] transition-transform ${
+          isDark ? "bg-gray-900" : "bg-gray-100"
+        }`}
+      >
+        {thumb ? (
+          <>
+            <Image
+              src={thumb}
+              alt={product.name}
+              fill
+              className={`object-contain drop-shadow-md p-[12%] transition-all duration-500 ${
+                hovered && secondImg ? "opacity-0 scale-105" : "opacity-100"
+              }`}
+              sizes="(max-width: 768px) 100vw, 33vw"
+            />
+            {secondImg && (
+              <Image
+                src={secondImg}
+                alt={`${product.name} alt`}
+                fill
+                className={`object-contain drop-shadow-md p-[12%] transition-all duration-500 ${
+                  hovered ? "opacity-100 scale-100" : "opacity-0 scale-95"
+                }`}
+                sizes="(max-width: 768px) 100vw, 33vw"
+              />
+            )}
+          </>
+        ) : (
+          <ShoppingBag
+            className={`w-32 h-32 drop-shadow-md ${
+              isDark ? "text-gray-800 border-[1px] border-gray-700/50 fill-gray-800 rounded-md" : "text-col-yellow"
+            }`}
+          />
+        )}
+      </div>
+      <div className="space-y-2">
+        <div className="flex justify-between items-start">
+          <h3 className="font-bold text-xl text-dark-bg">{product.name}</h3>
+          <span className="font-bold text-col-blue text-lg">
+            {firstVariant ? formatCOP(firstVariant.price_cop) : "Sin precio"}
+          </span>
+        </div>
+        <p className="text-gray-500 text-sm">{product.description}</p>
+        {onQuickAdd && (
+          <div className="pt-4 flex gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onQuickAdd(product);
+              }}
+              className={`w-full py-3 rounded-xl font-medium transition-colors flex justify-center items-center gap-2 ${
+                product.badge === "Más Vendida"
+                  ? "bg-col-yellow text-col-blue hover:bg-yellow-400 font-bold shadow-md"
+                  : isDark
+                  ? "bg-dark-bg text-white hover:bg-gray-800"
+                  : "bg-dark-bg text-white hover:bg-col-blue"
+              }`}
+            >
+              <ShoppingCart className="w-4 h-4" /> Añadir rápido
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

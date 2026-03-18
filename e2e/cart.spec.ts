@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
 async function goToFirstProduct(page: Page): Promise<boolean> {
-  const cards = page.locator('#tienda [role="button"]');
+  const cards = page.locator('#destacados [role="button"]');
   if ((await cards.count()) === 0) return false;
   await cards.first().click();
   await expect(page.locator("h1")).toBeVisible();
@@ -29,7 +29,9 @@ test.describe("Cart flow", () => {
   });
 
   test("empty cart shows empty state message", async ({ page }) => {
+    // Cart button now opens a drawer
     await page.getByLabel(/Carrito con \d+ productos/).click();
+    await expect(page.getByRole("dialog", { name: "Carrito de compras" })).toBeVisible();
     await expect(page.getByText("Tu carrito está vacío")).toBeVisible();
     await expect(page.getByRole("button", { name: "Seguir Comprando" })).toBeVisible();
   });
@@ -42,6 +44,10 @@ test.describe("Cart flow", () => {
     await addBtn.click();
 
     await expect(page.getByText("Producto añadido al carrito")).toBeVisible();
+    // Cart drawer opens automatically after adding
+    await expect(page.getByRole("dialog", { name: "Carrito de compras" })).toBeVisible();
+    // Close drawer
+    await page.getByLabel("Cerrar carrito").click();
     await expect(page.getByLabel(/Carrito con 1 productos/)).toBeVisible();
   });
 
@@ -62,44 +68,45 @@ test.describe("Cart flow", () => {
     await expect(page.getByLabel(/Carrito con 2 productos/)).toBeVisible();
   });
 
-  test("update quantity inside cart view", async ({ page }) => {
+  test("update quantity inside cart drawer", async ({ page }) => {
     if (!(await goToFirstProduct(page))) { test.skip(); return; }
     await page.getByRole("button", { name: "Agregar al Carrito" }).click();
     await expect(page.getByText("Producto añadido al carrito")).toBeVisible();
 
-    await page.getByLabel(/Carrito con \d+ productos/).click();
-    await expect(page.getByText("Tu Carrito")).toBeVisible();
+    // Drawer opens automatically after adding
+    const drawer = page.getByRole("dialog", { name: "Carrito de compras" });
+    await expect(drawer).toBeVisible();
 
-    // Increase qty with the aria-labeled button
-    const increaseBtn = page.getByLabel(/Aumentar cantidad/);
+    // Increase qty with the aria-labeled button inside drawer
+    const increaseBtn = drawer.getByLabel(/Aumentar cantidad/);
     await increaseBtn.click();
 
     // qty text should now be 2
-    const qtySpan = page.locator("#cart-container span.font-bold.text-sm");
+    const qtySpan = drawer.locator("#cart-container span.font-bold.text-xs");
     await expect(qtySpan).toContainText("2");
   });
 
-  test("remove item from cart", async ({ page }) => {
+  test("remove item from cart drawer", async ({ page }) => {
     if (!(await goToFirstProduct(page))) { test.skip(); return; }
     await page.getByRole("button", { name: "Agregar al Carrito" }).click();
     await expect(page.getByText("Producto añadido al carrito")).toBeVisible();
 
-    await page.getByLabel(/Carrito con \d+ productos/).click();
-    await expect(page.getByText("Tu Carrito")).toBeVisible();
+    const drawer = page.getByRole("dialog", { name: "Carrito de compras" });
+    await expect(drawer).toBeVisible();
 
-    await page.getByLabel(/Eliminar .+ del carrito/).click();
-    await expect(page.getByText("Tu carrito está vacío")).toBeVisible();
+    await drawer.getByLabel(/Eliminar .+ del carrito/).click();
+    await expect(drawer.getByText("Tu carrito está vacío")).toBeVisible();
   });
 
   test("decrease qty to 0 removes the item", async ({ page }) => {
     if (!(await goToFirstProduct(page))) { test.skip(); return; }
     await page.getByRole("button", { name: "Agregar al Carrito" }).click();
 
-    await page.getByLabel(/Carrito con \d+ productos/).click();
-    await expect(page.getByText("Tu Carrito")).toBeVisible();
+    const drawer = page.getByRole("dialog", { name: "Carrito de compras" });
+    await expect(drawer).toBeVisible();
 
-    await page.getByLabel(/Reducir cantidad/).click();
-    await expect(page.getByText("Tu carrito está vacío")).toBeVisible();
+    await drawer.getByLabel(/Reducir cantidad/).click();
+    await expect(drawer.getByText("Tu carrito está vacío")).toBeVisible();
   });
 
   test("cart persists across page reloads", async ({ page }) => {
@@ -111,10 +118,25 @@ test.describe("Cart flow", () => {
     await expect(page.getByLabel(/Carrito con 1 productos/)).toBeVisible();
   });
 
-  test("Seguir Comprando button returns to home from empty cart", async ({ page }) => {
+  test("Seguir Comprando closes drawer and goes home", async ({ page }) => {
     await page.getByLabel(/Carrito con \d+ productos/).click();
-    await expect(page.getByText("Tu carrito está vacío")).toBeVisible();
-    await page.getByRole("button", { name: "Seguir Comprando" }).click();
+    const drawer = page.getByRole("dialog", { name: "Carrito de compras" });
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByText("Tu carrito está vacío")).toBeVisible();
+    await drawer.getByRole("button", { name: "Seguir Comprando" }).click();
+    // Drawer should close
+    await expect(drawer).not.toBeVisible();
     await expect(page.locator("#navbar")).toBeVisible();
+  });
+
+  test("catalog filters show all products", async ({ page }) => {
+    // Navigate to collections view
+    await page.getByRole("button", { name: "Colecci\u00f3n" }).first().click();
+    await expect(page.getByText("Nuestra Colecci\u00f3n")).toBeVisible();
+    // Filter controls should be visible
+    await expect(page.getByRole("button", { name: "Todos" }).first()).toBeVisible();
+    // Products should be displayed
+    const productCards = page.locator('[role="button"]').filter({ has: page.locator("h3") });
+    expect(await productCards.count()).toBeGreaterThan(0);
   });
 });

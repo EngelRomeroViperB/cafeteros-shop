@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -24,7 +24,14 @@ import Image from "next/image";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { formatCOP } from "@/lib/format";
 import { onActivate } from "@/lib/keyboard";
-import type { CartItem, Category, Product, ProductMedia } from "@/types/store";
+import { useCart, useCartTotalItems, useCartSubtotal } from "@/lib/store/cart";
+import ProductCard from "@/components/product/ProductCard";
+import ProductGallery from "@/components/product/ProductGallery";
+import VariantSelector from "@/components/product/VariantSelector";
+import CartDrawer from "@/components/cart/CartDrawer";
+import CatalogFilters from "@/components/catalog/CatalogFilters";
+import type { GenderFilter, SortOption } from "@/components/catalog/CatalogFilters";
+import type { Category, Product } from "@/types/store";
 
 type Props = {
   products: Product[];
@@ -39,24 +46,84 @@ function getStartingVariant(product: Product) {
   return product.variants[0] ?? null;
 }
 
+function CartPageItems({ products }: { products: Product[] }) {
+  const items = useCart((s) => s.items);
+  const updateQty = useCart((s) => s.updateQty);
+  const removeItem = useCart((s) => s.removeItem);
+
+  const getStock = (variantId: string): number => {
+    for (const p of products) {
+      const v = p.variants.find((v) => v.id === variantId);
+      if (v) return v.stock;
+    }
+    return Infinity;
+  };
+
+  return (
+    <div className="divide-y divide-gray-100">
+      {items.map((item) => {
+        const iconColor = item.gender === "Dama" ? "text-pink-500" : "text-col-yellow";
+        const iconBg = item.gender === "Dama" ? "bg-pink-50" : "bg-yellow-50";
+        return (
+          <div key={item.variantId} className="p-4 md:p-6 flex flex-col sm:flex-row items-center gap-4 md:gap-6">
+            <div className={`relative w-20 h-20 md:w-24 md:h-24 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden`}>
+              {item.imageUrl ? (
+                <Image src={item.imageUrl} alt={item.name} fill className="object-cover rounded-xl" sizes="96px" />
+              ) : (
+                <ShoppingBag className={`w-12 h-12 ${iconColor}`} />
+              )}
+            </div>
+            <div className="flex-grow text-center sm:text-left">
+              <h3 className="font-bold text-gray-900 text-lg">{item.name}</h3>
+              <p className="text-sm text-gray-500 mb-2">Talla: {item.size} · {item.gender}</p>
+              <p className="font-bold text-col-blue">{formatCOP(item.unitPrice)}</p>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center border border-gray-300 rounded-lg bg-white">
+                <button onClick={() => updateQty(item.variantId, -1, getStock)} className="w-8 h-10 flex items-center justify-center text-gray-500 hover:text-col-blue" aria-label={`Reducir cantidad de ${item.name}`}>
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="w-10 text-center font-bold text-sm">{item.qty}</span>
+                <button onClick={() => updateQty(item.variantId, 1, getStock)} className="w-8 h-10 flex items-center justify-center text-gray-500 hover:text-col-blue" aria-label={`Aumentar cantidad de ${item.name}`}>
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
+              <button onClick={() => removeItem(item.variantId)} className="text-gray-500 hover:text-col-red transition-colors p-2" title="Eliminar" aria-label={`Eliminar ${item.name} del carrito`}>
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Storefront({ products, categories }: Props) {
   const [view, setView] = useState<ViewName>("home");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileMenuBtnRef = useRef<HTMLButtonElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [toast, setToast] = useState<string>("");
   const [activeProductId, setActiveProductId] = useState<string | null>(products[0]?.id ?? null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(products[0]?.variants[0]?.id ?? null);
-  const [productQty, setProductQty] = useState(1);
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [authBusy, setAuthBusy] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
-  const [selectedMediaIdx, setSelectedMediaIdx] = useState(0);
   const [selectedGender, setSelectedGender] = useState<"Dama" | "Caballero">("Caballero");
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
+  const [filterGender, setFilterGender] = useState<GenderFilter>("all");
+  const [filterSort, setFilterSort] = useState<SortOption>("default");
+
+  // Zustand cart
+  const cartItems = useCart((s) => s.items);
+  const addItemToCart = useCart((s) => s.addItem);
+  const totalItems = useCartTotalItems();
+  const subtotal = useCartSubtotal();
 
   const activeProduct = useMemo(
     () => products.find((product) => product.id === activeProductId) ?? products[0] ?? null,
@@ -67,15 +134,7 @@ export default function Storefront({ products, categories }: Props) {
     [activeProduct, selectedVariantId],
   );
 
-  const totalItems = useMemo(() => cart.reduce((sum, item) => sum + item.qty, 0), [cart]);
-  const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.unitPrice * item.qty, 0), [cart]);
-
   useEffect(() => {
-    const stored = localStorage.getItem("cart:v1");
-    if (stored) {
-      setCart(JSON.parse(stored) as CartItem[]);
-    }
-
     if (supabase) {
       supabase.auth.getSession().then(({ data }) => {
         setUserEmail(data.session?.user.email ?? null);
@@ -94,10 +153,6 @@ export default function Storefront({ products, categories }: Props) {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("cart:v1", JSON.stringify(cart));
-  }, [cart]);
-
-  useEffect(() => {
     if (!toast) {
       return;
     }
@@ -114,9 +169,6 @@ export default function Storefront({ products, categories }: Props) {
     setSelectedGender(firstGender);
     const firstVariantForGender = activeProduct.variants.find((v) => v.gender === firstGender && v.stock > 0) ?? activeProduct.variants.find((v) => v.gender === firstGender);
     setSelectedVariantId(firstVariantForGender?.id ?? activeProduct.variants[0]?.id ?? null);
-    setProductQty(1);
-    const primaryIdx = activeProduct.media?.findIndex((m) => m.media_type === "image" && m.is_primary);
-    setSelectedMediaIdx(primaryIdx !== undefined && primaryIdx >= 0 ? primaryIdx : 0);
   }, [activeProductId, activeProduct]);
 
   const navigate = (nextView: ViewName, replace = false) => {
@@ -201,74 +253,18 @@ export default function Storefront({ products, categories }: Props) {
   };
 
   const addToCart = (product: Product, variantId?: string, qty = 1) => {
-    const variant = variantId
-      ? product.variants.find((item) => item.id === variantId) ?? null
-      : getStartingVariant(product);
-    if (!variant) {
+    const vid = variantId ?? getStartingVariant(product)?.id;
+    if (!vid) {
       setToast("Producto sin variantes disponibles");
       return;
     }
-    if (variant.stock <= 0) {
-      setToast("Este producto está agotado");
+    const err = addItemToCart(product, vid, qty);
+    if (err) {
+      setToast(err);
       return;
     }
-
-    setCart((current) => {
-      const index = current.findIndex((item) => item.variantId === variant.id);
-      if (index !== -1) {
-        const newQty = Math.min(index !== -1 ? current[index].qty + qty : qty, variant.stock);
-        if (current[index].qty >= variant.stock) {
-          setToast(`Solo hay ${variant.stock} unidades disponibles`);
-          return current;
-        }
-        const clone = [...current];
-        clone[index] = { ...clone[index], qty: newQty };
-        return clone;
-      }
-      const primaryMedia = product.media?.find((m) => m.media_type === "image" && m.is_primary);
-      const fallbackMedia = product.media?.find((m) => m.media_type === "image");
-      const cartImage = primaryMedia?.url ?? fallbackMedia?.url ?? product.image_url ?? null;
-      return [
-        ...current,
-        {
-          productId: product.id,
-          variantId: variant.id,
-          name: product.name,
-          size: variant.size,
-          gender: variant.gender,
-          unitPrice: variant.price_cop,
-          qty,
-          imageUrl: cartImage,
-        },
-      ];
-    });
-
     setToast("Producto añadido al carrito");
-  };
-
-  const updateQty = (variantId: string, delta: number) => {
-    setCart((current) =>
-      current
-        .map((item) => {
-          if (item.variantId !== variantId) {
-            return item;
-          }
-          const product = products.find((p) => p.variants.some((v) => v.id === variantId));
-          const variant = product?.variants.find((v) => v.id === variantId);
-          const maxStock = variant?.stock ?? Infinity;
-          const newQty = Math.min(item.qty + delta, maxStock);
-          if (delta > 0 && item.qty >= maxStock) {
-            setToast(`Solo hay ${maxStock} unidades disponibles`);
-            return item;
-          }
-          return { ...item, qty: newQty };
-        })
-        .filter((item) => item.qty > 0),
-    );
-  };
-
-  const removeItem = (variantId: string) => {
-    setCart((current) => current.filter((item) => item.variantId !== variantId));
+    setCartDrawerOpen(true);
   };
 
   const handleAuth = async (mode: "login" | "signup") => {
@@ -321,7 +317,7 @@ export default function Storefront({ products, categories }: Props) {
   };
 
   const goCheckout = async () => {
-    if (cart.length === 0) {
+    if (cartItems.length === 0) {
       setToast("Tu carrito está vacío");
       return;
     }
@@ -344,7 +340,7 @@ export default function Storefront({ products, categories }: Props) {
         body: JSON.stringify({
           customerEmail: userEmail,
           userId,
-          items: cart,
+          items: cartItems,
         }),
       });
 
@@ -422,17 +418,11 @@ export default function Storefront({ products, categories }: Props) {
                 Innovación
               </button>
               <button
-                onClick={() => goHomeAndScroll("tienda")}
-                className="text-gray-300 hover:text-col-yellow transition-colors font-medium"
-              >
-                Colección
-              </button>
-              <button
                 onClick={() => navigate("collections")}
                 className={`transition-colors font-medium ${view === "collections" ? "text-col-yellow" : "text-gray-300 hover:text-col-yellow"}`}
                 aria-current={view === "collections" ? "page" : undefined}
               >
-                Conjuntos
+                Colección
               </button>
             </div>
 
@@ -448,7 +438,7 @@ export default function Storefront({ products, categories }: Props) {
               </button>
 
               <button
-                onClick={() => navigate("cart")}
+                onClick={() => setCartDrawerOpen(true)}
                 className="text-gray-300 hover:text-col-yellow transition-colors relative flex items-center gap-2"
                 aria-label={`Carrito con ${totalItems} productos`}
               >
@@ -493,11 +483,8 @@ export default function Storefront({ products, categories }: Props) {
               <button className="rounded-lg px-3 py-2 text-left text-gray-300 hover:text-col-yellow hover:bg-gray-800" onClick={() => goHomeAndScroll("detalles")}>
                 Innovación
               </button>
-              <button className="rounded-lg px-3 py-2 text-left text-gray-300 hover:text-col-yellow hover:bg-gray-800" onClick={() => goHomeAndScroll("tienda")}>
-                Colección
-              </button>
               <button className="rounded-lg px-3 py-2 text-left text-gray-300 hover:text-col-yellow hover:bg-gray-800" onClick={() => navigate("collections")}>
-                Conjuntos
+                Colección
               </button>
               <button className="rounded-lg px-3 py-2 text-left text-gray-300 hover:text-col-yellow hover:bg-gray-800" onClick={() => navigate("login")}>
                 {userEmail ? "Mi cuenta" : "Entrar"}
@@ -615,39 +602,14 @@ export default function Storefront({ products, categories }: Props) {
                   {products.filter((p) => {
                     const conjuntoCat = categories.find((c) => c.slug === "conjuntos");
                     return !conjuntoCat || p.category_id !== conjuntoCat.id;
-                  }).slice(0, 2).map((product) => {
-                    const firstVariant = getStartingVariant(product);
-                    const thumb = product.image_url || product.media?.find((m) => m.media_type === "image")?.url;
-                    return (
-                      <div
-                        key={product.id}
-                        className="bg-gray-50 rounded-2xl overflow-hidden shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-col-blue"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => { setActiveProductId(product.id); navigate("product"); }}
-                        onKeyDown={onActivate(() => { setActiveProductId(product.id); navigate("product"); })}
-                      >
-                        <div className="aspect-square md:aspect-[4/5] bg-gray-100 flex items-center justify-center relative overflow-hidden">
-                          {thumb ? (
-                            <Image src={thumb} alt={product.name} fill className="object-contain drop-shadow-lg group-hover:scale-110 transition-transform duration-500 p-[12%]" sizes="(max-width: 768px) 100vw, 33vw" />
-                          ) : (
-                            <ShoppingBag className="w-24 h-24 text-col-yellow" />
-                          )}
-                          {product.badge && (
-                            <span className="absolute top-4 left-4 bg-col-red text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">{product.badge}</span>
-                          )}
-                        </div>
-                        <div className="p-6">
-                          <h3 className="font-bold text-xl text-dark-bg mb-1">{product.name}</h3>
-                          <p className="text-gray-500 text-sm mb-3">{product.description}</p>
-                          <div className="flex justify-between items-center">
-                            <span className="font-bold text-col-blue text-lg">{firstVariant ? formatCOP(firstVariant.price_cop) : ""}</span>
-                            <span className="text-col-blue font-medium text-sm flex items-center gap-1">Ver producto <ArrowRight className="w-4 h-4" /></span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  }).slice(0, 2).map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      variant="featured"
+                      onClickProduct={(id) => { setActiveProductId(id); navigate("product"); }}
+                    />
+                  ))}
 
                   {/* Tarjeta de Colecciones */}
                   <div
@@ -717,92 +679,6 @@ export default function Storefront({ products, categories }: Props) {
               </div>
             </section>
 
-            {/* Tienda (Productos Destacados) */}
-            <section id="tienda" className="py-14 md:py-24 bg-gray-50">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex flex-col md:flex-row justify-between items-end mb-12 border-b border-gray-200 pb-6">
-                  <div>
-                    <h2 className="font-display text-4xl font-black text-dark-bg">La Colección Oficial</h2>
-                    <p className="text-gray-600 mt-2">Equípate con lo mejor para alentar a la tricolor.</p>
-                  </div>
-                  <div className="mt-4 md:mt-0">
-                    <span className="text-sm text-gray-500 font-medium">
-                      Catálogo conectado a Supabase
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {products.map((product) => {
-                    const firstVariant = getStartingVariant(product);
-                    const isDark = product.name.toLowerCase().includes("visitante");
-                    return (
-                      <div
-                        key={product.id}
-                        className={`bg-white rounded-2xl p-6 shadow-lg border hover:shadow-xl transition-all duration-300 relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-col-blue ${
-                          product.badge === "Más Vendida" ? "border-col-yellow" : "border-gray-100"
-                        }`}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => {
-                          setActiveProductId(product.id);
-                          navigate("product");
-                        }}
-                        onKeyDown={onActivate(() => { setActiveProductId(product.id); navigate("product"); })}
-                      >
-                        {product.badge === "Nuevo" && (
-                          <div className="absolute top-4 right-4 bg-col-red text-white text-xs font-bold px-3 py-1 rounded-full z-10">
-                            Nuevo
-                          </div>
-                        )}
-                        {product.badge === "Más Vendida" && (
-                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-col-yellow text-col-blue text-xs font-bold px-4 py-1 rounded-t-lg z-10 uppercase tracking-wide shadow-sm">
-                            Más Vendida
-                          </div>
-                        )}
-                        
-                        <div className={`aspect-square rounded-xl mb-6 flex items-center justify-center overflow-hidden relative group-hover:scale-[1.02] transition-transform ${isDark ? "bg-gray-900" : "bg-gray-100"}`}>
-                          {(() => {
-                            const thumb = product.image_url || product.media?.find((m) => m.media_type === "image")?.url;
-                            return thumb ? (
-                              <Image src={thumb} alt={product.name} fill className="object-contain drop-shadow-md p-[12%]" sizes="(max-width: 768px) 100vw, 33vw" />
-                            ) : (
-                              <ShoppingBag className={`w-32 h-32 drop-shadow-md ${isDark ? "text-gray-800 border-[1px] border-gray-700/50 fill-gray-800 rounded-md" : "text-col-yellow"}`} />
-                            );
-                          })()}
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-start">
-                            <h3 className="font-bold text-xl text-dark-bg">{product.name}</h3>
-                            <span className="font-bold text-col-blue text-lg">
-                              {firstVariant ? formatCOP(firstVariant.price_cop) : "Sin precio"}
-                            </span>
-                          </div>
-                          <p className="text-gray-500 text-sm">{product.description}</p>
-                          <div className="pt-4 flex gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                addToCart(product);
-                              }}
-                              className={`w-full py-3 rounded-xl font-medium transition-colors flex justify-center items-center gap-2 ${
-                                product.badge === "Más Vendida" 
-                                  ? "bg-col-yellow text-col-blue hover:bg-yellow-400 font-bold shadow-md" 
-                                  : isDark
-                                  ? "bg-dark-bg text-white hover:bg-gray-800"
-                                  : "bg-dark-bg text-white hover:bg-col-blue"
-                              }`}
-                            >
-                              <ShoppingCart className="w-4 h-4" /> Añadir rápido
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </section>
           </div>
         )}
 
@@ -819,194 +695,22 @@ export default function Storefront({ products, categories }: Props) {
             </nav>
 
             <div className="flex flex-col lg:flex-row gap-6 md:gap-12 lg:gap-20">
-              {/* Galería de Imagen */}
-              <div className="w-full lg:w-1/2">
-                {(() => {
-                  const rawMedia: ProductMedia[] = activeProduct.media ?? [];
-                  const allMedia = rawMedia.filter((m) => !m.gender || m.gender === selectedGender);
-                  const hasMedia = allMedia.length > 0;
-                  const current = hasMedia ? allMedia[selectedMediaIdx] ?? allMedia[0] : null;
-                  const fallbackImg = activeProduct.image_url;
-
-                  return (
-                    <>
-                      <div className="bg-gray-100 rounded-2xl md:rounded-3xl aspect-square md:aspect-[4/5] flex items-center justify-center relative shadow-inner overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 to-white opacity-50"></div>
-                        {current ? (
-                          current.media_type === "video" ? (
-                            <video
-                              key={current.id}
-                              src={current.url}
-                              className="w-full h-full object-contain relative z-10"
-                              controls
-                              playsInline
-                              muted
-                              autoPlay
-                              loop
-                            />
-                          ) : (
-                            <Image src={current.url} alt={activeProduct.name} fill className="object-contain drop-shadow-2xl z-10 transform transition-transform duration-700 hover:scale-125 p-[12%]" sizes="(max-width: 1024px) 100vw, 50vw" priority />
-                          )
-                        ) : fallbackImg ? (
-                          <Image src={fallbackImg} alt={activeProduct.name} fill className="object-contain drop-shadow-2xl z-10 transform transition-transform duration-700 hover:scale-125 p-[12%]" sizes="(max-width: 1024px) 100vw, 50vw" priority />
-                        ) : (
-                          <ShoppingBag className="w-64 h-64 text-col-yellow drop-shadow-2xl relative z-10 transform transition-transform duration-700 hover:scale-125" />
-                        )}
-                        {activeProduct.badge && (
-                          <div className="absolute top-6 left-6 bg-col-red text-white text-xs font-bold px-4 py-1.5 rounded-full z-20 uppercase tracking-wider">
-                            {activeProduct.badge}
-                          </div>
-                        )}
-                      </div>
-                      {hasMedia && allMedia.length > 1 && (
-                        <div className="grid grid-cols-4 gap-2 md:gap-4 mt-3 md:mt-4">
-                          {allMedia.map((m, idx) => (
-                            <button
-                              key={m.id}
-                              onClick={() => setSelectedMediaIdx(idx)}
-                              className={`bg-gray-100 rounded-xl aspect-square flex items-center justify-center cursor-pointer overflow-hidden ${
-                                idx === selectedMediaIdx ? "border-2 border-col-blue" : "border border-gray-200 hover:border-gray-400"
-                              }`}
-                            >
-                              {m.media_type === "video" ? (
-                                <div className="relative w-full h-full flex items-center justify-center bg-gray-200">
-                                  <span className="text-xs font-bold text-gray-500">▶ Video</span>
-                                </div>
-                              ) : (
-                                <Image src={m.url} alt={`Miniatura ${idx + 1}`} fill className="object-contain p-[12%]" sizes="80px" />
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
+              <ProductGallery product={activeProduct} selectedGender={selectedGender} />
 
               {/* Detalles del Producto */}
               <div className="w-full lg:w-1/2 flex flex-col justify-center">
-                <div className="mb-6">
-                  <h1 className="font-display text-2xl md:text-3xl lg:text-5xl font-black text-dark-bg mb-2">
-                    {activeProduct.name}
-                  </h1>
-                  <div className="flex items-center gap-4">
-                    <p className="text-2xl md:text-3xl font-bold text-col-blue">
-                      {activeVariant ? formatCOP(activeVariant.price_cop) : "Sin precio"}
-                    </p>
-                    {activeVariant && activeVariant.stock > 0 && (
-                      <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">
-                        En Stock ({activeVariant.stock})
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <p className="text-gray-600 mb-4 md:mb-8 text-base md:text-lg leading-relaxed">
-                  {activeProduct.description}
-                </p>
-
-                {/* Paso 1: Género */}
-                {(() => {
-                  const availableGenders = [...new Set(activeProduct.variants.map((v) => v.gender))];
-                  const sizesForGender = activeProduct.variants.filter((v) => v.gender === selectedGender);
-                  return (
-                    <>
-                      <div className="mb-6">
-                        <h3 className="font-bold text-gray-900 mb-3">Selecciona el género</h3>
-                        <div className="flex gap-3">
-                          {availableGenders.map((g) => (
-                            <button
-                              key={g}
-                              type="button"
-                              onClick={() => {
-                                setSelectedGender(g);
-                                setSelectedMediaIdx(0);
-                                const firstWithStock = activeProduct.variants.find((v) => v.gender === g && v.stock > 0) ?? activeProduct.variants.find((v) => v.gender === g);
-                                setSelectedVariantId(firstWithStock?.id ?? null);
-                                setProductQty(1);
-                              }}
-                              className={`flex-1 rounded-xl py-3 text-center transition-all font-medium ${
-                                selectedGender === g
-                                  ? "border-2 border-col-blue bg-blue-50 text-col-blue font-bold shadow-sm"
-                                  : "border border-gray-300 hover:border-col-blue hover:text-col-blue"
-                              }`}
-                            >
-                              {g}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Paso 2: Talla */}
-                      <div className="mb-8">
-                        <div className="flex justify-between items-center mb-3">
-                          <h3 className="font-bold text-gray-900">Selecciona tu talla</h3>
-                          <button className="text-col-blue text-sm hover:underline flex items-center gap-1">
-                            <Wind className="w-4 h-4" /> Guía de tallas
-                          </button>
-                        </div>
-                        <div className="flex flex-wrap gap-3">
-                          {sizesForGender.map((variant) => {
-                            const outOfStock = variant.stock <= 0;
-                            return (
-                              <button
-                                key={variant.id}
-                                type="button"
-                                disabled={outOfStock}
-                                onClick={() => setSelectedVariantId(variant.id)}
-                                className={`min-w-[56px] rounded-xl py-3 px-4 text-center transition-all ${
-                                  outOfStock
-                                    ? "border border-gray-200 text-gray-400 cursor-not-allowed line-through"
-                                    : selectedVariantId === variant.id
-                                    ? "border-2 border-col-blue bg-blue-50 text-col-blue font-bold shadow-sm"
-                                    : "border border-gray-300 font-medium hover:border-col-blue hover:text-col-blue"
-                                }`}
-                              >
-                                {variant.size}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {sizesForGender.length === 0 && (
-                          <p className="text-gray-500 text-sm mt-2">No hay tallas disponibles para {selectedGender}.</p>
-                        )}
-                      </div>
-                    </>
-                  );
-                })()}
-
-                {/* Acciones */}
-                <div className="flex gap-3 md:gap-4 mb-6 md:mb-10">
-                  <div className="flex items-center border border-gray-300 rounded-xl bg-white w-32">
-                    <button 
-                      className="w-10 h-12 flex items-center justify-center text-gray-500 hover:text-col-blue"
-                      onClick={() => setProductQty((current) => Math.max(1, current - 1))}
-                    >
-                      <Minus className="w-4 h-4" />
-                    </button>
-                    <input 
-                      type="text" 
-                      value={productQty} 
-                      className="w-full text-center font-bold focus:outline-none" 
-                      readOnly
-                      aria-label="Cantidad"
-                    />
-                    <button 
-                      className="w-10 h-12 flex items-center justify-center text-gray-500 hover:text-col-blue"
-                      onClick={() => setProductQty((current) => activeVariant ? Math.min(current + 1, activeVariant.stock) : current + 1)}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => addToCart(activeProduct, selectedVariantId ?? undefined, productQty)}
-                    disabled={!activeVariant}
-                    className="flex-1 bg-col-yellow text-col-blue py-3 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-yellow-400 transition-all shadow-[0_8px_20px_rgba(252,209,22,0.3)] hover:-translate-y-1 flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <ShoppingBag className="w-5 h-5" /> Agregar al Carrito
-                  </button>
-                </div>
+                <VariantSelector
+                  product={activeProduct}
+                  selectedGender={selectedGender}
+                  selectedVariantId={selectedVariantId}
+                  onGenderChange={(g) => {
+                    setSelectedGender(g);
+                    const first = activeProduct.variants.find((v) => v.gender === g && v.stock > 0) ?? activeProduct.variants.find((v) => v.gender === g);
+                    setSelectedVariantId(first?.id ?? null);
+                  }}
+                  onVariantChange={(id) => setSelectedVariantId(id)}
+                  onAddToCart={(qty) => addToCart(activeProduct, selectedVariantId ?? undefined, qty)}
+                />
 
                 {/* Acordeón de información */}
                 <div className="border-t border-gray-200 pt-6 space-y-0 divide-y divide-gray-200">
@@ -1059,10 +763,9 @@ export default function Storefront({ products, categories }: Props) {
             </h1>
 
             <div className="flex flex-col lg:flex-row gap-8">
-              {/* Lista de Productos */}
               <div className="w-full lg:w-2/3">
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="cart-container">
-                  {cart.length === 0 ? (
+                  {cartItems.length === 0 ? (
                     <div className="p-8 md:p-12 text-center text-gray-500">
                       <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                       <h3 className="text-xl font-bold text-gray-900 mb-2">Tu carrito está vacío</h3>
@@ -1075,51 +778,11 @@ export default function Storefront({ products, categories }: Props) {
                       </button>
                     </div>
                   ) : (
-                    <div className="divide-y divide-gray-100">
-                      {cart.map((item) => {
-                        const iconColor = item.gender === "Dama" ? 'text-pink-500' : 'text-col-yellow';
-                        const iconBg = item.gender === "Dama" ? 'bg-pink-50' : 'bg-yellow-50';
-                        
-                        return (
-                          <div key={item.variantId} className="p-4 md:p-6 flex flex-col sm:flex-row items-center gap-4 md:gap-6">
-                            <div className={`relative w-20 h-20 md:w-24 md:h-24 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden`}>
-                              {item.imageUrl ? (
-                                <Image src={item.imageUrl} alt={item.name} fill className="object-cover rounded-xl" sizes="96px" />
-                              ) : (
-                                <ShoppingBag className={`w-12 h-12 ${iconColor}`} />
-                              )}
-                            </div>
-                            
-                            <div className="flex-grow text-center sm:text-left">
-                              <h3 className="font-bold text-gray-900 text-lg">{item.name}</h3>
-                              <p className="text-sm text-gray-500 mb-2">Talla: {item.size} • {item.gender}</p>
-                              <p className="font-bold text-col-blue">{formatCOP(item.unitPrice)}</p>
-                            </div>
-
-                            <div className="flex items-center gap-6">
-                              <div className="flex items-center border border-gray-300 rounded-lg bg-white">
-                                <button onClick={() => updateQty(item.variantId, -1)} className="w-8 h-10 flex items-center justify-center text-gray-500 hover:text-col-blue" aria-label={`Reducir cantidad de ${item.name}`}>
-                                  <Minus className="w-3 h-3" />
-                                </button>
-                                <span className="w-10 text-center font-bold text-sm">{item.qty}</span>
-                                <button onClick={() => updateQty(item.variantId, 1)} className="w-8 h-10 flex items-center justify-center text-gray-500 hover:text-col-blue" aria-label={`Aumentar cantidad de ${item.name}`}>
-                                  <Plus className="w-3 h-3" />
-                                </button>
-                              </div>
-                              
-                              <button onClick={() => removeItem(item.variantId)} className="text-gray-500 hover:text-col-red transition-colors p-2" title="Eliminar" aria-label={`Eliminar ${item.name} del carrito`}>
-                                <Trash2 className="w-5 h-5" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <CartPageItems products={products} />
                   )}
                 </div>
               </div>
 
-              {/* Resumen del Pedido */}
               <div className="w-full lg:w-1/3">
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-28">
                   <h2 className="font-bold text-lg text-gray-900 mb-6">Resumen del Pedido</h2>
@@ -1148,7 +811,7 @@ export default function Storefront({ products, categories }: Props) {
                       }
                       goCheckout().catch(() => null);
                     }}
-                    disabled={checkingOut || cart.length === 0}
+                    disabled={checkingOut || cartItems.length === 0}
                     className="w-full bg-col-blue text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-800 transition-all shadow-lg shadow-blue-900/20 mb-4 flex items-center justify-center gap-2 disabled:opacity-60 disabled:shadow-none"
                   >
                     {checkingOut ? "Creando pago..." : userEmail ? "Proceder al Pago" : "Inicia sesión para pagar"}
@@ -1171,69 +834,69 @@ export default function Storefront({ products, categories }: Props) {
             <nav className="flex text-sm text-gray-500 mb-4 md:mb-8 items-center gap-2">
               <button onClick={() => navigate("home")} className="hover:text-col-blue flex-shrink-0">Inicio</button>
               <ChevronRight className="w-4 h-4" />
-              <span className="text-gray-900 font-medium">Colecciones</span>
+              <span className="text-gray-900 font-medium">Colección</span>
             </nav>
 
             <div className="text-center max-w-2xl mx-auto mb-8 md:mb-14">
-              <h1 className="font-display text-2xl md:text-4xl font-black text-dark-bg mb-3">Conjuntos Deportivos</h1>
-              <p className="text-gray-500">Equipamiento completo para entrenar y competir con estilo.</p>
+              <h1 className="font-display text-2xl md:text-4xl font-black text-dark-bg mb-3">Nuestra Colección</h1>
+              <p className="text-gray-500">Equípate con lo mejor para alentar a la tricolor.</p>
             </div>
 
             {(() => {
-              const conjuntoCat = categories.find((c) => c.slug === "conjuntos");
-              const collectionProducts = conjuntoCat
-                ? products.filter((p) => p.category_id === conjuntoCat.id)
-                : [];
+              let filtered = filterCategory
+                ? products.filter((p) => p.category_id === filterCategory)
+                : [...products];
 
-              if (collectionProducts.length === 0) {
-                return (
-                  <div className="text-center py-20">
-                    <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Próximamente</h3>
-                    <p className="text-gray-500 mb-6">Estamos preparando conjuntos deportivos exclusivos.</p>
-                    <button onClick={() => navigate("home")} className="bg-col-blue text-white px-6 py-3 rounded-full font-medium hover:bg-blue-800 transition-colors">
-                      Volver al Inicio
-                    </button>
-                  </div>
+              if (filterGender !== "all") {
+                filtered = filtered.filter((p) =>
+                  p.variants.some((v) => v.gender === filterGender && v.stock > 0),
                 );
               }
 
+              if (filterSort === "price_asc") {
+                filtered.sort((a, b) => (a.variants[0]?.price_cop ?? 0) - (b.variants[0]?.price_cop ?? 0));
+              } else if (filterSort === "price_desc") {
+                filtered.sort((a, b) => (b.variants[0]?.price_cop ?? 0) - (a.variants[0]?.price_cop ?? 0));
+              }
+
               return (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {collectionProducts.map((product) => {
-                    const firstVariant = getStartingVariant(product);
-                    const thumb = product.image_url || product.media?.find((m) => m.media_type === "image")?.url;
-                    return (
-                      <div
-                        key={product.id}
-                        className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-col-blue"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => { setActiveProductId(product.id); navigate("product"); }}
-                        onKeyDown={onActivate(() => { setActiveProductId(product.id); navigate("product"); })}
+                <>
+                  <CatalogFilters
+                    categories={categories}
+                    activeCategoryId={filterCategory}
+                    onCategoryChange={setFilterCategory}
+                    gender={filterGender}
+                    onGenderChange={setFilterGender}
+                    sort={filterSort}
+                    onSortChange={setFilterSort}
+                    resultCount={filtered.length}
+                  />
+
+                  {filtered.length === 0 ? (
+                    <div className="text-center py-20">
+                      <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Sin resultados</h3>
+                      <p className="text-gray-500 mb-6">No encontramos productos con esos filtros.</p>
+                      <button
+                        onClick={() => { setFilterCategory(null); setFilterGender("all"); setFilterSort("default"); }}
+                        className="bg-col-blue text-white px-6 py-3 rounded-full font-medium hover:bg-blue-800 transition-colors"
                       >
-                        {product.badge && (
-                          <div className="absolute top-4 right-4 bg-col-red text-white text-xs font-bold px-3 py-1 rounded-full z-10">{product.badge}</div>
-                        )}
-                        <div className="relative aspect-square rounded-xl mb-6 flex items-center justify-center overflow-hidden bg-gray-100 group-hover:scale-[1.02] transition-transform">
-                          {thumb ? (
-                            <Image src={thumb} alt={product.name} fill className="object-contain drop-shadow-md p-[12%]" sizes="(max-width: 768px) 100vw, 33vw" />
-                          ) : (
-                            <ShoppingBag className="w-32 h-32 text-col-yellow" />
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <h3 className="font-bold text-xl text-dark-bg">{product.name}</h3>
-                          <p className="text-gray-500 text-sm">{product.description}</p>
-                          <div className="flex justify-between items-center pt-2">
-                            <span className="font-bold text-col-blue text-lg">{firstVariant ? formatCOP(firstVariant.price_cop) : ""}</span>
-                            <span className="text-col-blue font-medium text-sm flex items-center gap-1">Ver producto <ArrowRight className="w-4 h-4" /></span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                        Limpiar filtros
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      {filtered.map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          onClickProduct={(id) => { setActiveProductId(id); navigate("product"); }}
+                          onQuickAdd={(p) => addToCart(p)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
               );
             })()}
           </div>
@@ -1334,6 +997,25 @@ export default function Storefront({ products, categories }: Props) {
       )}
       </main>
 
+      {/* Cart Drawer */}
+      <CartDrawer
+        open={cartDrawerOpen}
+        onClose={() => setCartDrawerOpen(false)}
+        onGoHome={() => navigate("home")}
+        onCheckout={() => {
+          setCartDrawerOpen(false);
+          if (!userEmail) {
+            navigate("login");
+            setToast("Inicia sesión para continuar al pago");
+            return;
+          }
+          goCheckout().catch(() => null);
+        }}
+        checkingOut={checkingOut}
+        userEmail={userEmail}
+        products={products}
+      />
+
       {/* Footer */}
       <footer className="bg-gray-950 text-white pt-16 pb-8 border-t-4 border-col-yellow mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1351,7 +1033,7 @@ export default function Storefront({ products, categories }: Props) {
               <h4 className="font-bold text-lg mb-4 text-gray-200">Productos</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li><button onClick={() => navigate("home")} className="hover:text-col-yellow transition-colors">Camisetas</button></li>
-                <li><button onClick={() => goHomeAndScroll("tienda")} className="hover:text-col-yellow transition-colors">Colección</button></li>
+                <li><button onClick={() => navigate("collections")} className="hover:text-col-yellow transition-colors">Colección</button></li>
               </ul>
             </div>
             <div>
