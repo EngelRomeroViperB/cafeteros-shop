@@ -13,12 +13,12 @@ test.describe("Navigation flow", () => {
     // Desktop nav buttons (hidden md:flex)
     const desktopNav = navbar(page).locator(".hidden.md\\:flex");
     await expect(desktopNav.getByRole("button", { name: "Inicio" })).toBeVisible();
-    await expect(desktopNav.getByRole("button", { name: "Conjuntos" })).toBeVisible();
+    await expect(desktopNav.getByRole("button", { name: "Colección" })).toBeVisible();
     await expect(page.getByLabel(/Carrito con \d+ productos/)).toBeVisible();
   });
 
   test("clicking a product card navigates to product detail", async ({ page }) => {
-    const productCards = page.locator('#tienda [role="button"]');
+    const productCards = page.locator('#destacados [role="button"]');
     const cardCount = await productCards.count();
     if (cardCount === 0) { test.skip(); return; }
 
@@ -30,7 +30,7 @@ test.describe("Navigation flow", () => {
   });
 
   test("breadcrumb Inicio returns to home from product page", async ({ page }) => {
-    const productCards = page.locator('#tienda [role="button"]');
+    const productCards = page.locator('#destacados [role="button"]');
     if ((await productCards.count()) === 0) { test.skip(); return; }
 
     await productCards.first().click();
@@ -41,34 +41,37 @@ test.describe("Navigation flow", () => {
     await expect(navbar(page)).toBeVisible();
   });
 
-  test("Conjuntos nav button navigates to collections", async ({ page }) => {
+  test("Colección nav button navigates to collections", async ({ page }) => {
     const desktopNav = navbar(page).locator(".hidden.md\\:flex");
-    await desktopNav.getByRole("button", { name: "Conjuntos" }).click();
-    await expect(page.locator("h1")).toContainText("Conjuntos Deportivos");
+    await desktopNav.getByRole("button", { name: "Colección" }).click();
+    await expect(page.locator("h1")).toContainText("Nuestra Colección");
   });
 
   test("collections breadcrumb Inicio returns to home", async ({ page }) => {
     const desktopNav = navbar(page).locator(".hidden.md\\:flex");
-    await desktopNav.getByRole("button", { name: "Conjuntos" }).click();
-    await expect(page.locator("h1")).toContainText("Conjuntos");
+    await desktopNav.getByRole("button", { name: "Colección" }).click();
+    await expect(page.locator("h1")).toContainText("Nuestra Colección");
     await page.locator("#main-content").getByRole("button", { name: "Inicio", exact: true }).click();
     await expect(navbar(page)).toBeVisible();
   });
 
-  test("cart icon navigates to cart view", async ({ page }) => {
+  test("cart icon opens cart drawer", async ({ page }) => {
     await page.getByLabel(/Carrito con \d+ productos/).click();
-    await expect(page.locator("h1")).toContainText("Tu Carrito");
+    const drawer = page.getByRole("dialog", { name: "Carrito de compras" });
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByRole("heading", { name: "Tu Carrito", exact: true })).toBeVisible();
   });
 
   test("user icon navigates to login view", async ({ page }) => {
-    await page.getByLabel(/Iniciar sesión|Mi cuenta/).first().click();
-    await expect(page.locator("h2")).toContainText(/Inicia Sesión|Tu cuenta/);
+    // User icon could be in navbar or footer; click the one in the navbar area
+    await page.locator("#navbar").getByLabel(/Iniciar sesión|Mi cuenta/).click();
+    await expect(page.getByRole("heading", { name: "Inicia Sesión" })).toBeVisible();
   });
 
   test("browser back button works after navigation", async ({ page }) => {
     const desktopNav = navbar(page).locator(".hidden.md\\:flex");
-    await desktopNav.getByRole("button", { name: "Conjuntos" }).click();
-    await expect(page.locator("h1")).toContainText("Conjuntos");
+    await desktopNav.getByRole("button", { name: "Colección" }).click();
+    await expect(page.locator("h1")).toContainText("Nuestra Colección");
     await page.goBack();
     await expect(navbar(page)).toBeVisible();
   });

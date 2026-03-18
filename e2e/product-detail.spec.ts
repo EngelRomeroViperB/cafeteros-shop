@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
 async function goToFirstProduct(page: Page): Promise<boolean> {
-  const cards = page.locator('#tienda [role="button"]');
+  const cards = page.locator('#destacados [role="button"]');
   if ((await cards.count()) === 0) return false;
   await cards.first().click();
   await expect(page.locator("h1")).toBeVisible();

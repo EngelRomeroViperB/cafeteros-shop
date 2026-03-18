@@ -124,8 +124,8 @@ test.describe("Cart flow", () => {
     await expect(drawer).toBeVisible();
     await expect(drawer.getByText("Tu carrito está vacío")).toBeVisible();
     await drawer.getByRole("button", { name: "Seguir Comprando" }).click();
-    // Drawer should close
-    await expect(drawer).not.toBeVisible();
+    // Drawer closes (slides off-screen via translate-x-full)
+    await expect(drawer).toHaveClass(/translate-x-full/);
     await expect(page.locator("#navbar")).toBeVisible();
   });
 

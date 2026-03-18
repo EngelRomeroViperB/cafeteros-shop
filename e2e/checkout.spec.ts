@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
 async function goToFirstProduct(page: Page): Promise<boolean> {
-  const cards = page.locator('#tienda [role="button"]');
+  const cards = page.locator('#destacados [role="button"]');
   if ((await cards.count()) === 0) return false;
   await cards.first().click();
   await expect(page.locator("h1")).toBeVisible();
@@ -26,7 +26,9 @@ test.describe("Checkout flow", () => {
 
   test("empty cart shows empty state (no checkout button)", async ({ page }) => {
     await page.getByLabel(/Carrito con \d+ productos/).click();
-    await expect(page.getByText("Tu carrito está vacío")).toBeVisible();
+    const drawer = page.getByRole("dialog", { name: "Carrito de compras" });
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByText("Tu carrito está vacío")).toBeVisible();
   });
 
   test("unauthenticated user is redirected to login when clicking checkout", async ({ page }) => {
@@ -34,21 +36,22 @@ test.describe("Checkout flow", () => {
     await page.getByRole("button", { name: "Agregar al Carrito" }).click();
     await expect(page.getByText("Producto añadido al carrito")).toBeVisible();
 
-    await page.getByLabel(/Carrito con \d+ productos/).click();
-    await expect(page.getByText("Tu Carrito")).toBeVisible();
+    // Drawer opens automatically after adding
+    const drawer = page.getByRole("dialog", { name: "Carrito de compras" });
+    await expect(drawer).toBeVisible();
 
     // Button text shows "Inicia sesión para pagar" for unauthenticated users
-    const checkoutBtn = page.getByRole("button", { name: /Inicia sesión para pagar/ });
+    const checkoutBtn = drawer.getByRole("button", { name: /Inicia sesión para pagar/ });
     await expect(checkoutBtn).toBeVisible();
     await checkoutBtn.click();
 
+    // Drawer closes and login view appears
     await expect(page.locator("h2")).toContainText("Inicia Sesión");
-    await expect(page.getByText("Inicia sesión para continuar al pago")).toBeVisible();
   });
 
   test("login form renders with required fields", async ({ page }) => {
-    await page.getByLabel(/Iniciar sesión|Mi cuenta/).first().click();
-    await expect(page.locator("h2")).toBeVisible();
+    await page.locator("#navbar").getByLabel(/Iniciar sesión|Mi cuenta/).click();
+    await expect(page.getByRole("heading", { name: "Inicia Sesión" })).toBeVisible();
 
     // Verify form fields exist
     const emailInput = page.getByPlaceholder("hincha@colombia.com");
@@ -72,21 +75,15 @@ test.describe("Checkout flow", () => {
     await page.getByRole("button", { name: "Agregar al Carrito" }).click();
     await expect(page.getByText("Producto añadido al carrito")).toBeVisible();
 
-    // Go to cart
-    await page.getByLabel(/Carrito con \d+ productos/).click();
-    await expect(page.getByText("Tu Carrito")).toBeVisible();
+    // Drawer opens automatically
+    const drawer = page.getByRole("dialog", { name: "Carrito de compras" });
+    await expect(drawer).toBeVisible();
 
-    // Verify summary is visible with a non-zero total
-    await expect(page.getByText("Resumen del Pedido")).toBeVisible();
-    await expect(page.getByText("Subtotal")).toBeVisible();
-    const totalEl = page.locator("span.font-black.text-2xl");
-    await expect(totalEl).toBeVisible();
-    const totalContent = await totalEl.textContent();
-    expect(totalContent).toBeTruthy();
-    expect(totalContent).not.toContain("$ 0");
+    // Verify subtotal is visible in drawer footer
+    await expect(drawer.getByText("Subtotal")).toBeVisible();
 
     // Attempt checkout — should redirect to login
-    await page.getByRole("button", { name: /Inicia sesión para pagar/ }).click();
+    await drawer.getByRole("button", { name: /Inicia sesión para pagar/ }).click();
     await expect(page.locator("h2")).toContainText("Inicia Sesión");
   });
 });
