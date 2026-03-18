@@ -300,8 +300,8 @@ export default function Storefront({ products, categories }: Props) {
       return;
     }
 
-    navigate("cart");
-    setToast(mode === "login" ? "Sesión iniciada" : "Cuenta creada");
+    setToast(mode === "login" ? "Sesión iniciada" : "¡Cuenta creada!");
+    navigate("home");
   };
 
   const handleLogout = async () => {
