@@ -20,6 +20,11 @@
   --font-display: var(--font-montserrat);
 
   --animate-blob: blob 7s infinite;
+  --animate-hero-float: hero-float 4s ease-in-out infinite;
+  @keyframes hero-float {
+    0%, 100% { transform: translateY(0px) rotate(2deg); }
+    50% { transform: translateY(-14px) rotate(-1deg); }
+  }
   @keyframes blob {
     0% { transform: translate(0px, 0px) scale(1); }
     33% { transform: translate(30px, -50px) scale(1.1); }

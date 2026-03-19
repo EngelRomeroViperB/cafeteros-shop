@@ -642,7 +642,7 @@ export default function Storefront({ products, categories }: Props) {
                     onKeyDown={onActivate(() => { if (activeProduct?.id) setActiveProductId(activeProduct.id); navigate("product"); })}
                     aria-label={`Ver ${activeProduct?.name ?? "producto"}`}
                   >
-                    <div className="relative w-full max-w-[240px] mx-auto aspect-[4/5] bg-gradient-to-tr from-gray-800 to-gray-700 rounded-2xl p-5 shadow-2xl border border-gray-600/50 flex flex-col items-center justify-center transform lg:rotate-2 hover:rotate-0 hover:scale-105 transition-all duration-500 overflow-hidden group">
+                    <div className="relative w-full max-w-[240px] mx-auto aspect-[4/5] bg-gradient-to-tr from-gray-800 to-gray-700 rounded-2xl p-5 shadow-2xl border border-gray-600/50 flex flex-col items-center justify-center animate-hero-float hover:scale-105 transition-all duration-500 overflow-hidden group">
                       <div className="absolute top-3 right-3 bg-col-yellow text-col-blue text-[10px] font-bold px-2 py-0.5 rounded-full z-20 shadow-md">
                         Clic para ver
                       </div>
@@ -1430,6 +1430,19 @@ export default function Storefront({ products, categories }: Props) {
           </div>
         </div>
       </footer>
+
+      {/* WhatsApp floating button */}
+      <a
+        href="https://wa.me/573241947654?text=Hola%2C%20quiero%20info%20sobre%20los%20productos%20de%20Cafeteros%20Shop"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-5 right-5 z-50 w-14 h-14 bg-[#25D366] rounded-full flex items-center justify-center shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-300"
+        aria-label="Contactar por WhatsApp"
+      >
+        <svg viewBox="0 0 32 32" className="w-7 h-7 fill-white">
+          <path d="M16.004 0h-.008C7.174 0 0 7.176 0 16c0 3.5 1.128 6.744 3.046 9.378L1.054 31.29l6.118-1.96A15.9 15.9 0 0016.004 32C24.826 32 32 24.822 32 16S24.826 0 16.004 0zm9.335 22.594c-.39 1.1-1.932 2.012-3.168 2.278-.846.18-1.95.322-5.67-1.218-4.762-1.97-7.828-6.81-8.066-7.126-.228-.316-1.92-2.558-1.92-4.878 0-2.32 1.216-3.46 1.648-3.934.39-.428 1.022-.624 1.628-.624.196 0 .374.01.532.018.468.02.702.048 1.012.784.386.916 1.326 3.236 1.442 3.472.118.236.236.556.076.872-.148.326-.278.528-.516.808-.238.28-.498.624-.712.838-.238.238-.486.496-.208.972.278.468 1.236 2.038 2.654 3.302 1.822 1.624 3.36 2.126 3.836 2.362.476.236.756.198 1.034-.118.286-.326 1.218-1.42 1.544-1.908.316-.486.642-.406 1.08-.244.442.158 2.762 1.302 3.234 1.54.476.236.792.356.908.554.118.196.118 1.14-.272 2.242z"/>
+        </svg>
+      </a>
     </div>
   );
 }
