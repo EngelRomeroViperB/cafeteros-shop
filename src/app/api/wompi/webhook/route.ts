@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { checkRate } from "@/lib/rate-limit";
+import { sendOrderNotification } from "@/lib/telegram";
 
 type WompiWebhookEvent = {
   event: string;
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
         status: statusMap[tx.status] ?? "pending",
       })
       .eq("reference", tx.reference)
-      .select("id")
+      .select("id, reference, total_cop, customer_email, shipping_name, shipping_phone, shipping_address, shipping_city, shipping_department, shipping_notes")
       .single();
 
     if (orderError) {
@@ -113,11 +114,11 @@ export async function POST(request: Request) {
       console.log("[WEBHOOK] Order updated:", orderData?.id);
     }
 
-    // Decrement stock when payment is approved
+    // Decrement stock and send Telegram notification when payment is approved
     if (tx.status === "APPROVED" && orderData?.id) {
       const { data: items } = await supabase
         .from("order_items")
-        .select("variant_id, quantity")
+        .select("variant_id, quantity, title, selected_size, selected_gender, unit_price_cop")
         .eq("order_id", orderData.id);
 
       console.log("[WEBHOOK] Decrementing stock for", items?.length ?? 0, "items");
@@ -131,6 +132,26 @@ export async function POST(request: Request) {
           });
         }
       }
+
+      // Send Telegram notification to admin
+      await sendOrderNotification({
+        reference: orderData.reference,
+        totalCop: orderData.total_cop,
+        customerEmail: orderData.customer_email,
+        shippingName: orderData.shipping_name ?? "",
+        shippingPhone: orderData.shipping_phone ?? "",
+        shippingAddress: orderData.shipping_address ?? "",
+        shippingCity: orderData.shipping_city ?? "",
+        shippingDepartment: orderData.shipping_department ?? "",
+        shippingNotes: orderData.shipping_notes ?? "",
+        items: (items ?? []).map((i) => ({
+          title: i.title,
+          size: i.selected_size ?? "",
+          gender: i.selected_gender ?? "",
+          quantity: i.quantity,
+          unitPrice: i.unit_price_cop,
+        })),
+      }).catch((err) => console.error("[WEBHOOK] Telegram error:", err));
     }
 
     return NextResponse.json({ ok: true });

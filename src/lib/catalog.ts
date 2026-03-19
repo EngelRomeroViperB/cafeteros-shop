@@ -19,6 +19,7 @@ const fallbackProducts: Product[] = [
         size: "M",
         gender: "Caballero" as const,
         price_cop: 449900,
+        cost_cop: 0,
         stock: 20,
         sort_order: 0,
         is_active: true,

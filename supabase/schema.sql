@@ -34,6 +34,7 @@ create table if not exists public.product_variants (
   price_cop integer not null check (price_cop > 0),
   stock integer not null default 0 check (stock >= 0),
   sort_order integer not null default 0,
+  cost_cop integer not null default 0,
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );

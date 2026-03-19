@@ -126,7 +126,7 @@ function CheckoutResultContent() {
 
         {status === "paid" && (
           <p className="mt-4 text-sm text-green-300">
-            ¡Tu pago fue confirmado exitosamente! Pronto recibirás un correo con los detalles de tu pedido.
+            ¡Tu pago fue confirmado exitosamente! Puedes ver el estado de tu pedido en la sección <strong>Mis Pedidos</strong> de tu cuenta.
           </p>
         )}
 

@@ -4,6 +4,7 @@ export type ProductVariant = {
   size: string;
   gender: "Dama" | "Caballero";
   price_cop: number;
+  cost_cop: number;
   stock: number;
   sort_order: number;
   is_active: boolean;

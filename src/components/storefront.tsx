@@ -5,12 +5,16 @@ import {
   ArrowDown,
   ArrowRight,
   Check,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   Leaf,
+  Loader2,
   Lock,
   LogOut,
   Menu,
   Minus,
+  Package,
   Plus,
   ShieldCheck,
   ShoppingBag,
@@ -39,7 +43,7 @@ type Props = {
   categories: Category[];
 };
 
-type ViewName = "home" | "product" | "cart" | "checkout" | "login" | "collections";
+type ViewName = "home" | "product" | "cart" | "checkout" | "login" | "collections" | "account";
 
 const supabase = createBrowserSupabaseClient();
 
@@ -127,6 +131,13 @@ export default function Storefront({ products, categories }: Props) {
   const [shippingCity, setShippingCity] = useState("");
   const [shippingDepartment, setShippingDepartment] = useState("");
   const [shippingNotes, setShippingNotes] = useState("");
+
+  // Account orders
+  type AccountOrderItem = { id: string; title: string; selected_size: string; selected_gender: string; quantity: number; unit_price_cop: number; line_total_cop: number };
+  type AccountOrder = { id: string; reference: string; status: string; wompi_status: string; total_cop: number; created_at: string; items: AccountOrderItem[] };
+  const [accountOrders, setAccountOrders] = useState<AccountOrder[]>([]);
+  const [accountLoading, setAccountLoading] = useState(false);
+  const [expandedAccountOrder, setExpandedAccountOrder] = useState<string | null>(null);
 
   // Zustand cart
   const cartItems = useCart((s) => s.items);
@@ -260,6 +271,31 @@ export default function Storefront({ products, categories }: Props) {
         section.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }, 120);
+  };
+
+  const fetchAccountOrders = async () => {
+    if (!supabase) return;
+    setAccountLoading(true);
+    try {
+      const session = (await supabase.auth.getSession()).data.session;
+      if (!session?.user?.id) return;
+      const res = await fetch(`/api/account/orders?userId=${session.user.id}`);
+      const json = await res.json();
+      if (res.ok) setAccountOrders(json.orders ?? []);
+    } catch {
+      setToast("Error al cargar pedidos");
+    } finally {
+      setAccountLoading(false);
+    }
+  };
+
+  const goToAccount = () => {
+    if (!userEmail) {
+      navigate("login");
+      return;
+    }
+    navigate("account");
+    fetchAccountOrders();
   };
 
   const addToCart = (product: Product, variantId?: string, qty = 1) => {
@@ -472,7 +508,7 @@ export default function Storefront({ products, categories }: Props) {
             {/* Íconos de Usuario y Carrito */}
             <div className="flex items-center space-x-4 sm:space-x-6">
               <button
-                onClick={() => navigate("login")}
+                onClick={() => userEmail ? goToAccount() : navigate("login")}
                 className="text-gray-300 hover:text-col-yellow transition-colors flex items-center gap-2"
                 aria-label={userEmail ? "Mi cuenta" : "Iniciar sesión"}
               >
@@ -529,7 +565,7 @@ export default function Storefront({ products, categories }: Props) {
               <button className="rounded-lg px-3 py-2 text-left text-gray-300 hover:text-col-yellow hover:bg-gray-800" onClick={() => navigate("collections")}>
                 Colección
               </button>
-              <button className="rounded-lg px-3 py-2 text-left text-gray-300 hover:text-col-yellow hover:bg-gray-800" onClick={() => navigate("login")}>
+              <button className="rounded-lg px-3 py-2 text-left text-gray-300 hover:text-col-yellow hover:bg-gray-800" onClick={() => userEmail ? goToAccount() : navigate("login")}>
                 {userEmail ? "Mi cuenta" : "Entrar"}
               </button>
             </div>
@@ -634,27 +670,70 @@ export default function Storefront({ products, categories }: Props) {
               </div>
             </section>
 
-            {/* Productos Destacados – 3 tarjetas */}
+            {/* Productos por Género */}
             <section id="destacados" className="py-12 md:py-20 bg-white">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center max-w-2xl mx-auto mb-14">
                   <h2 className="font-display text-3xl md:text-4xl font-black text-dark-bg mb-3">Nuestros Productos</h2>
                   <p className="text-gray-500">Encuentra la camiseta perfecta para ti.</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {products.filter((p) => {
-                    const conjuntoCat = categories.find((c) => c.slug === "conjuntos");
-                    return !conjuntoCat || p.category_id !== conjuntoCat.id;
-                  }).slice(0, 2).map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      variant="featured"
-                      onClickProduct={(id) => { setActiveProductId(id); navigate("product"); }}
-                    />
-                  ))}
 
-                  {/* Tarjeta de Colecciones */}
+                {/* Camisetas Caballero */}
+                {(() => {
+                  const conjuntoCat = categories.find((c) => c.slug === "conjuntos");
+                  const caballeroProducts = products.filter((p) => {
+                    if (conjuntoCat && p.category_id === conjuntoCat.id) return false;
+                    return p.variants.some((v) => v.gender === "Caballero" && v.is_active);
+                  });
+                  if (caballeroProducts.length === 0) return null;
+                  return (
+                    <div className="mb-14">
+                      <h3 className="font-display text-xl md:text-2xl font-bold text-dark-bg mb-6 flex items-center gap-2">
+                        <span className="w-8 h-1 bg-col-blue rounded-full"></span> Camisetas Caballero
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {caballeroProducts.map((product) => (
+                          <ProductCard
+                            key={`cab-${product.id}`}
+                            product={product}
+                            variant="featured"
+                            onClickProduct={(id) => { setActiveProductId(id); navigate("product"); }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Camisetas Dama */}
+                {(() => {
+                  const conjuntoCat = categories.find((c) => c.slug === "conjuntos");
+                  const damaProducts = products.filter((p) => {
+                    if (conjuntoCat && p.category_id === conjuntoCat.id) return false;
+                    return p.variants.some((v) => v.gender === "Dama" && v.is_active);
+                  });
+                  if (damaProducts.length === 0) return null;
+                  return (
+                    <div className="mb-14">
+                      <h3 className="font-display text-xl md:text-2xl font-bold text-dark-bg mb-6 flex items-center gap-2">
+                        <span className="w-8 h-1 bg-col-red rounded-full"></span> Camisetas Dama
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {damaProducts.map((product) => (
+                          <ProductCard
+                            key={`dama-${product.id}`}
+                            product={product}
+                            variant="featured"
+                            onClickProduct={(id) => { setActiveProductId(id); navigate("product"); }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Tarjeta de Colecciones */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div
                     className="bg-gradient-to-br from-dark-bg to-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-700 hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus:ring-2 focus:ring-col-yellow"
                     role="button"
@@ -1079,6 +1158,9 @@ export default function Storefront({ products, categories }: Props) {
 
             {userEmail ? (
               <div className="mt-6 space-y-4">
+                <button className="w-full rounded-xl border border-col-yellow/50 bg-col-yellow/10 py-3 font-semibold text-col-yellow hover:bg-col-yellow/20 transition-colors flex items-center justify-center gap-2" onClick={() => goToAccount()}>
+                  <Package className="w-4 h-4" /> Mis Pedidos
+                </button>
                 <button className="w-full rounded-xl border border-gray-600 py-3 font-semibold text-white hover:bg-gray-800 transition-colors" onClick={() => navigate("cart")}>
                   Ir al carrito
                 </button>
@@ -1154,6 +1236,109 @@ export default function Storefront({ products, categories }: Props) {
           </div>
         </div>
       )}
+
+      {view === "account" && (
+        <div className="page-view block min-h-screen hero-pattern py-20 px-4">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-8">
+              <h2 className="font-display text-2xl font-bold text-white flex items-center justify-center gap-2">
+                <Package className="w-6 h-6 text-col-yellow" /> Mis Pedidos
+              </h2>
+              <p className="text-gray-400 mt-2 text-sm">{userEmail}</p>
+            </div>
+
+            {accountLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-col-yellow" />
+              </div>
+            ) : accountOrders.length === 0 ? (
+              <div className="text-center py-12">
+                <ShoppingBag className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400">No tienes pedidos aún.</p>
+                <button onClick={() => navigate("home")} className="mt-4 bg-col-yellow text-col-blue px-6 py-2 rounded-full font-bold text-sm hover:bg-yellow-300 transition-all">
+                  Ir a comprar
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {accountOrders.map((order) => {
+                  const isExpanded = expandedAccountOrder === order.id;
+                  const statusColors: Record<string, string> = {
+                    pending: "bg-yellow-400/20 text-yellow-400",
+                    paid: "bg-green-400/20 text-green-400",
+                    shipped: "bg-blue-400/20 text-blue-400",
+                    delivered: "bg-emerald-400/20 text-emerald-400",
+                    canceled: "bg-red-400/20 text-red-400",
+                    declined: "bg-red-400/20 text-red-400",
+                    error: "bg-red-400/20 text-red-400",
+                  };
+                  const statusLabels: Record<string, string> = {
+                    pending: "Pendiente",
+                    paid: "Pagado",
+                    shipped: "Enviado",
+                    delivered: "Entregado",
+                    canceled: "Cancelado",
+                    declined: "Rechazado",
+                    error: "Error",
+                  };
+
+                  return (
+                    <div key={order.id} className="bg-gray-800/80 backdrop-blur rounded-xl border border-gray-700 overflow-hidden">
+                      <button
+                        onClick={() => setExpandedAccountOrder(isExpanded ? null : order.id)}
+                        className="w-full flex items-center justify-between p-4 hover:bg-gray-700/50 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <span className={`px-2 py-1 rounded-md text-xs font-bold whitespace-nowrap ${statusColors[order.status] ?? "bg-gray-600 text-gray-300"}`}>
+                            {statusLabels[order.status] ?? order.status}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="font-medium text-white text-sm truncate">{order.reference}</div>
+                            <div className="text-xs text-gray-500">{new Date(order.created_at).toLocaleDateString("es-CO")}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-white text-sm">${(order.total_cop).toLocaleString("es-CO")}</span>
+                          {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+                        </div>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="border-t border-gray-700 p-4">
+                          <div className="space-y-2">
+                            {order.items.map((item) => (
+                              <div key={item.id} className="flex items-center justify-between text-sm">
+                                <div>
+                                  <span className="text-white">{item.title}</span>
+                                  <span className="text-gray-500 ml-2">({item.selected_size}, {item.selected_gender}) x{item.quantity}</span>
+                                </div>
+                                <span className="text-white font-medium">${(item.line_total_cop).toLocaleString("es-CO")}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-gray-700 flex justify-between text-sm">
+                            <span className="text-gray-400">Total</span>
+                            <span className="text-white font-bold">${(order.total_cop).toLocaleString("es-CO")}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="mt-8 flex gap-3 justify-center">
+              <button onClick={() => navigate("home")} className="px-5 py-2.5 rounded-full font-bold text-sm text-white border-2 border-white/30 hover:border-white hover:bg-white/10 transition-all">
+                Seguir comprando
+              </button>
+              <button onClick={() => navigate("login")} className="px-5 py-2.5 rounded-full font-bold text-sm text-gray-400 hover:text-white transition-all">
+                Mi cuenta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </main>
 
       {/* Cart Drawer */}
@@ -1181,7 +1366,7 @@ export default function Storefront({ products, categories }: Props) {
                 </div>
                 <span className="font-display font-bold text-xl tracking-wider">CAFETEROS</span>
               </div>
-              <p className="text-gray-400 text-sm">Distribuidor autorizado de indumentaria oficial de la Selección Colombia.</p>
+              <p className="text-gray-400 text-sm">Llevamos la pasión por Colombia a otro nivel con camisetas de excelente calidad y acabados superiores.</p>
             </div>
             <div>
               <h4 className="font-bold text-lg mb-4 text-gray-200">Productos</h4>

@@ -21,7 +21,7 @@ type CheckoutBody = {
 };
 
 function makeReference() {
-  return `tricolor-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  return `cafeteros-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 }
 
 export async function POST(request: Request) {

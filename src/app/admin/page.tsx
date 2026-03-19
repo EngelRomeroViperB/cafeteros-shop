@@ -2,8 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  BarChart3,
   Box,
+  ChevronDown,
   ChevronLeft,
+  ChevronUp,
+  DollarSign,
   Eye,
   EyeOff,
   Film,
@@ -15,8 +19,10 @@ import {
   Pencil,
   Plus,
   Save,
+  ShoppingCart,
   Star,
   Trash2,
+  Truck,
   X,
 } from "lucide-react";
 import type {
@@ -55,12 +61,20 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"list" | "edit">("list");
+  const [activeTab, setActiveTab] = useState<"list" | "edit" | "orders">("list");
+
+  // orders
+  type OrderItem = { id: string; title: string; selected_size: string; selected_gender: string; quantity: number; unit_price_cop: number; line_total_cop: number };
+  type Order = { id: string; reference: string; status: string; wompi_status: string; total_cop: number; customer_email: string; shipping_name: string; shipping_phone: string; shipping_address: string; shipping_city: string; shipping_department: string; shipping_notes: string; created_at: string; items: OrderItem[] };
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [orderFilter, setOrderFilter] = useState<string>("all");
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ProductDraft>({ ...EMPTY_DRAFT });
 
   // variant editing
-  const [variantDraft, setVariantDraft] = useState({ size: "", gender: "Caballero" as "Dama" | "Caballero", price_cop: "", stock: "", sort_order: "" });
+  const [variantDraft, setVariantDraft] = useState({ size: "", gender: "Caballero" as "Dama" | "Caballero", price_cop: "", cost_cop: "", stock: "", sort_order: "" });
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
 
   // media
@@ -97,6 +111,42 @@ export default function AdminPage() {
   useEffect(() => {
     if (authed) fetchAll();
   }, [authed, fetchAll]);
+
+  const fetchOrders = useCallback(async () => {
+    setOrdersLoading(true);
+    try {
+      const res = await fetch("/api/admin/orders", { headers });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Error al cargar pedidos");
+      setOrders(json.orders ?? []);
+    } catch (err) {
+      flash(`Error: ${err instanceof Error ? err.message : "al cargar pedidos"}`);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, [headers, flash]);
+
+  useEffect(() => {
+    if (authed && activeTab === "orders") fetchOrders();
+  }, [authed, activeTab, fetchOrders]);
+
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || "Error al actualizar");
+      }
+      flash("Estado actualizado");
+      await fetchOrders();
+    } catch (err) {
+      flash(`Error: ${err instanceof Error ? err.message : "desconocido"}`);
+    }
+  };
 
   useEffect(() => {
     const stored = sessionStorage.getItem("admin_key");
@@ -203,6 +253,7 @@ export default function AdminPage() {
         size: variantDraft.size,
         gender: variantDraft.gender,
         price_cop: parseInt(variantDraft.price_cop),
+        cost_cop: parseInt(variantDraft.cost_cop) || 0,
         stock: parseInt(variantDraft.stock) || 0,
         sort_order: parseInt(variantDraft.sort_order) || 0,
       };
@@ -215,7 +266,7 @@ export default function AdminPage() {
         throw new Error(json.error);
       }
       flash(editingVariantId ? "Variante actualizada" : "Variante añadida");
-      setVariantDraft({ size: "", gender: "Caballero", price_cop: "", stock: "", sort_order: "" });
+      setVariantDraft({ size: "", gender: "Caballero", price_cop: "", cost_cop: "", stock: "", sort_order: "" });
       setEditingVariantId(null);
       await fetchAll();
     } catch (err: unknown) {
@@ -241,6 +292,7 @@ export default function AdminPage() {
       size: v.size,
       gender: v.gender,
       price_cop: String(v.price_cop),
+      cost_cop: String(v.cost_cop ?? 0),
       stock: String(v.stock),
       sort_order: String(v.sort_order ?? 0),
     });
@@ -374,10 +426,18 @@ export default function AdminPage() {
           <button
             onClick={() => setActiveTab("list")}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === "list" ? "bg-yellow-400/10 text-yellow-400" : "text-gray-400 hover:text-white hover:bg-gray-800"
+              activeTab === "list" || activeTab === "edit" ? "bg-yellow-400/10 text-yellow-400" : "text-gray-400 hover:text-white hover:bg-gray-800"
             }`}
           >
             <Package className="w-4 h-4" /> Productos
+          </button>
+          <button
+            onClick={() => setActiveTab("orders")}
+            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "orders" ? "bg-yellow-400/10 text-yellow-400" : "text-gray-400 hover:text-white hover:bg-gray-800"
+            }`}
+          >
+            <ShoppingCart className="w-4 h-4" /> Pedidos
           </button>
         </nav>
         <div className="p-4 border-t border-gray-800">
@@ -703,6 +763,13 @@ export default function AdminPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
                     <input
                       type="number"
+                      placeholder="Costo (COP)"
+                      value={variantDraft.cost_cop}
+                      onChange={(e) => setVariantDraft((d) => ({ ...d, cost_cop: e.target.value }))}
+                      className="bg-gray-800 rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-400 focus:outline-none text-white text-sm"
+                    />
+                    <input
+                      type="number"
                       placeholder="Orden (0, 1, 2...)"
                       value={variantDraft.sort_order}
                       onChange={(e) => setVariantDraft((d) => ({ ...d, sort_order: e.target.value }))}
@@ -721,7 +788,7 @@ export default function AdminPage() {
                       <button
                         onClick={() => {
                           setEditingVariantId(null);
-                          setVariantDraft({ size: "", gender: "Caballero", price_cop: "", stock: "", sort_order: "" });
+                          setVariantDraft({ size: "", gender: "Caballero", price_cop: "", cost_cop: "", stock: "", sort_order: "" });
                         }}
                         className="text-gray-500 hover:text-white px-3 py-2 text-sm"
                       >
@@ -840,6 +907,229 @@ export default function AdminPage() {
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "orders" && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <ShoppingCart className="w-6 h-6 text-yellow-400" /> Pedidos
+              </h2>
+              <button
+                onClick={fetchOrders}
+                disabled={ordersLoading}
+                className="bg-gray-800 text-gray-300 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-700 transition-colors"
+              >
+                {ordersLoading ? "Cargando..." : "Actualizar"}
+              </button>
+            </div>
+
+            {/* Metrics */}
+            {(() => {
+              const paidOrders = orders.filter((o) => o.status === "paid" || o.status === "shipped" || o.status === "delivered");
+              const totalRevenue = paidOrders.reduce((sum, o) => sum + o.total_cop, 0);
+              const today = new Date().toISOString().slice(0, 10);
+              const todayOrders = paidOrders.filter((o) => o.created_at?.slice(0, 10) === today);
+              const todayRevenue = todayOrders.reduce((sum, o) => sum + o.total_cop, 0);
+              const thisMonth = new Date().toISOString().slice(0, 7);
+              const monthOrders = paidOrders.filter((o) => o.created_at?.slice(0, 7) === thisMonth);
+              const monthRevenue = monthOrders.reduce((sum, o) => sum + o.total_cop, 0);
+
+              // Calculate total cost from variants for profit
+              const variantCostMap = new Map<string, number>();
+              for (const p of products) {
+                for (const v of p.variants) {
+                  variantCostMap.set(`${v.size}-${v.gender}`, v.cost_cop ?? 0);
+                }
+              }
+              const totalCost = paidOrders.reduce((sum, o) => {
+                return sum + o.items.reduce((iSum, item) => {
+                  const key = `${item.selected_size}-${item.selected_gender}`;
+                  const cost = variantCostMap.get(key) ?? 0;
+                  return iSum + cost * item.quantity;
+                }, 0);
+              }, 0);
+              const totalProfit = totalRevenue - totalCost;
+
+              return (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                    <div className="flex items-center gap-2 text-gray-400 text-xs mb-1"><BarChart3 className="w-3.5 h-3.5" /> Ventas totales</div>
+                    <div className="text-xl font-bold text-white">{formatCOP(totalRevenue)}</div>
+                    <div className="text-xs text-gray-500">{paidOrders.length} pedidos confirmados</div>
+                  </div>
+                  <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                    <div className="flex items-center gap-2 text-gray-400 text-xs mb-1"><DollarSign className="w-3.5 h-3.5" /> Ganancia total</div>
+                    <div className={`text-xl font-bold ${totalProfit >= 0 ? "text-green-400" : "text-red-400"}`}>{formatCOP(totalProfit)}</div>
+                    <div className="text-xs text-gray-500">Ingresa costos en variantes</div>
+                  </div>
+                  <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                    <div className="flex items-center gap-2 text-gray-400 text-xs mb-1"><BarChart3 className="w-3.5 h-3.5" /> Ventas hoy</div>
+                    <div className="text-xl font-bold text-white">{formatCOP(todayRevenue)}</div>
+                    <div className="text-xs text-gray-500">{todayOrders.length} pedidos</div>
+                  </div>
+                  <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                    <div className="flex items-center gap-2 text-gray-400 text-xs mb-1"><BarChart3 className="w-3.5 h-3.5" /> Ventas del mes</div>
+                    <div className="text-xl font-bold text-white">{formatCOP(monthRevenue)}</div>
+                    <div className="text-xs text-gray-500">{monthOrders.length} pedidos</div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Filters */}
+            <div className="flex gap-2 mb-4 flex-wrap">
+              {[
+                { value: "all", label: "Todos" },
+                { value: "pending", label: "Pendientes" },
+                { value: "paid", label: "Pagados" },
+                { value: "shipped", label: "Enviados" },
+                { value: "delivered", label: "Entregados" },
+                { value: "canceled", label: "Cancelados" },
+              ].map((f) => (
+                <button
+                  key={f.value}
+                  onClick={() => setOrderFilter(f.value)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    orderFilter === f.value ? "bg-yellow-400 text-gray-900" : "bg-gray-800 text-gray-400 hover:text-white"
+                  }`}
+                >
+                  {f.label}
+                  {f.value !== "all" && (
+                    <span className="ml-1 text-xs">({orders.filter((o) => o.status === f.value).length})</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Orders list */}
+            {ordersLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-yellow-400" />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {orders
+                  .filter((o) => orderFilter === "all" || o.status === orderFilter)
+                  .map((order) => {
+                    const isExpanded = expandedOrder === order.id;
+                    const statusColors: Record<string, string> = {
+                      pending: "bg-yellow-400/20 text-yellow-400",
+                      paid: "bg-green-400/20 text-green-400",
+                      shipped: "bg-blue-400/20 text-blue-400",
+                      delivered: "bg-emerald-400/20 text-emerald-400",
+                      canceled: "bg-red-400/20 text-red-400",
+                      declined: "bg-red-400/20 text-red-400",
+                      error: "bg-red-400/20 text-red-400",
+                    };
+                    const statusLabels: Record<string, string> = {
+                      pending: "Pendiente",
+                      paid: "Pagado",
+                      shipped: "Enviado",
+                      delivered: "Entregado",
+                      canceled: "Cancelado",
+                      declined: "Rechazado",
+                      error: "Error",
+                    };
+
+                    return (
+                      <div key={order.id} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                        <button
+                          onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
+                          className="w-full flex items-center justify-between p-4 hover:bg-gray-750 transition-colors text-left"
+                        >
+                          <div className="flex items-center gap-4 flex-1 min-w-0">
+                            <span className={`px-2 py-1 rounded-md text-xs font-bold ${statusColors[order.status] ?? "bg-gray-600 text-gray-300"}`}>
+                              {statusLabels[order.status] ?? order.status}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="font-medium text-white text-sm truncate">{order.reference}</div>
+                              <div className="text-xs text-gray-500">{order.shipping_name || order.customer_email}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <div className="font-bold text-white text-sm">{formatCOP(order.total_cop)}</div>
+                              <div className="text-xs text-gray-500">{new Date(order.created_at).toLocaleDateString("es-CO")}</div>
+                            </div>
+                            {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+                          </div>
+                        </button>
+
+                        {isExpanded && (
+                          <div className="border-t border-gray-700 p-4 space-y-4">
+                            {/* Shipping info */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <h4 className="text-xs font-bold text-gray-400 uppercase mb-2 flex items-center gap-1"><Truck className="w-3.5 h-3.5" /> Datos de envío</h4>
+                                <div className="space-y-1 text-sm">
+                                  <div className="text-white">{order.shipping_name || "—"}</div>
+                                  <div className="text-gray-400">{order.shipping_phone || "—"}</div>
+                                  <div className="text-gray-400">{order.shipping_address || "—"}</div>
+                                  <div className="text-gray-400">{order.shipping_city}{order.shipping_department ? `, ${order.shipping_department}` : ""}</div>
+                                  {order.shipping_notes && <div className="text-gray-500 italic">{order.shipping_notes}</div>}
+                                </div>
+                              </div>
+                              <div>
+                                <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Info del pedido</h4>
+                                <div className="space-y-1 text-sm">
+                                  <div className="text-gray-400">Email: <span className="text-white">{order.customer_email}</span></div>
+                                  <div className="text-gray-400">Wompi: <span className="text-white">{order.wompi_status || "—"}</span></div>
+                                  <div className="text-gray-400">Fecha: <span className="text-white">{new Date(order.created_at).toLocaleString("es-CO")}</span></div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Items */}
+                            <div>
+                              <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Items</h4>
+                              <div className="bg-gray-900 rounded-lg divide-y divide-gray-800">
+                                {order.items.map((item) => (
+                                  <div key={item.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                                    <div>
+                                      <span className="text-white">{item.title}</span>
+                                      <span className="text-gray-500 ml-2">({item.selected_size}, {item.selected_gender}) x{item.quantity}</span>
+                                    </div>
+                                    <span className="text-white font-medium">{formatCOP(item.line_total_cop)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Status actions */}
+                            <div>
+                              <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Cambiar estado</h4>
+                              <div className="flex gap-2 flex-wrap">
+                                {["pending", "paid", "shipped", "delivered", "canceled"].map((s) => (
+                                  <button
+                                    key={s}
+                                    disabled={order.status === s}
+                                    onClick={() => updateOrderStatus(order.id, s)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                      order.status === s
+                                        ? "bg-yellow-400 text-gray-900 cursor-default"
+                                        : "bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white"
+                                    }`}
+                                  >
+                                    {statusLabels[s] ?? s}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                {orders.filter((o) => orderFilter === "all" || o.status === orderFilter).length === 0 && (
+                  <div className="text-center py-12 text-gray-500">
+                    No hay pedidos {orderFilter !== "all" ? `con estado "${orderFilter}"` : ""}
+                  </div>
+                )}
               </div>
             )}
           </div>
