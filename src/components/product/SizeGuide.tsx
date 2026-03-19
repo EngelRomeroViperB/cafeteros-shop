@@ -1,24 +1,36 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   open: boolean;
   onClose: () => void;
+  gender?: "Dama" | "Caballero";
 };
 
-const sizes = [
-  { label: "XS", chest: "84-88", waist: "68-72", hip: "84-88" },
-  { label: "S", chest: "88-92", waist: "72-76", hip: "88-92" },
-  { label: "M", chest: "92-96", waist: "76-80", hip: "92-96" },
-  { label: "L", chest: "96-100", waist: "80-84", hip: "96-100" },
-  { label: "XL", chest: "100-104", waist: "84-88", hip: "100-104" },
-  { label: "XXL", chest: "104-108", waist: "88-92", hip: "104-108" },
+const sizesCaballero = [
+  { label: "S", chest: "88-92", length: "68-70", shoulder: "42-44" },
+  { label: "M", chest: "92-96", length: "70-72", shoulder: "44-46" },
+  { label: "L", chest: "96-100", length: "72-74", shoulder: "46-48" },
+  { label: "XL", chest: "100-104", length: "74-76", shoulder: "48-50" },
+  { label: "XXL", chest: "104-108", length: "76-78", shoulder: "50-52" },
 ];
 
-export default function SizeGuide({ open, onClose }: Props) {
+const sizesDama = [
+  { label: "S", chest: "82-86", length: "60-62", shoulder: "36-38" },
+  { label: "M", chest: "86-90", length: "62-64", shoulder: "38-40" },
+  { label: "L", chest: "90-94", length: "64-66", shoulder: "40-42" },
+  { label: "XL", chest: "94-98", length: "66-68", shoulder: "42-44" },
+];
+
+export default function SizeGuide({ open, onClose, gender }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState<"Caballero" | "Dama">(gender ?? "Caballero");
+
+  useEffect(() => {
+    if (open && gender) setActiveTab(gender);
+  }, [open, gender]);
 
   useEffect(() => {
     if (!open) return;
@@ -30,6 +42,8 @@ export default function SizeGuide({ open, onClose }: Props) {
   }, [open, onClose]);
 
   if (!open) return null;
+
+  const sizes = activeTab === "Caballero" ? sizesCaballero : sizesDama;
 
   return (
     <div
@@ -55,15 +69,32 @@ export default function SizeGuide({ open, onClose }: Props) {
           </button>
         </div>
         <div className="p-6">
-          <p className="text-gray-500 text-sm mb-4">Medidas en centímetros (cm). Toma las medidas sobre el cuerpo.</p>
+          {/* Gender tabs */}
+          <div className="flex gap-2 mb-5">
+            {(["Caballero", "Dama"] as const).map((g) => (
+              <button
+                key={g}
+                onClick={() => setActiveTab(g)}
+                className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
+                  activeTab === g
+                    ? "bg-col-blue text-white shadow-sm"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                }`}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+
+          <p className="text-gray-500 text-sm mb-4">Medidas en centímetros (cm). Mide la prenda extendida sobre una superficie plana.</p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-3 px-2 font-bold text-gray-900">Talla</th>
                   <th className="text-center py-3 px-2 font-bold text-gray-900">Pecho</th>
-                  <th className="text-center py-3 px-2 font-bold text-gray-900">Cintura</th>
-                  <th className="text-center py-3 px-2 font-bold text-gray-900">Cadera</th>
+                  <th className="text-center py-3 px-2 font-bold text-gray-900">Largo</th>
+                  <th className="text-center py-3 px-2 font-bold text-gray-900">Hombro</th>
                 </tr>
               </thead>
               <tbody>
@@ -71,8 +102,8 @@ export default function SizeGuide({ open, onClose }: Props) {
                   <tr key={s.label} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-3 px-2 font-bold text-col-blue">{s.label}</td>
                     <td className="py-3 px-2 text-center text-gray-600">{s.chest}</td>
-                    <td className="py-3 px-2 text-center text-gray-600">{s.waist}</td>
-                    <td className="py-3 px-2 text-center text-gray-600">{s.hip}</td>
+                    <td className="py-3 px-2 text-center text-gray-600">{s.length}</td>
+                    <td className="py-3 px-2 text-center text-gray-600">{s.shoulder}</td>
                   </tr>
                 ))}
               </tbody>

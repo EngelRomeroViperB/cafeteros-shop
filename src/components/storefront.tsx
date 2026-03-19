@@ -678,7 +678,7 @@ export default function Storefront({ products, categories }: Props) {
                   <p className="text-gray-500">Encuentra la camiseta perfecta para ti.</p>
                 </div>
 
-                {/* Camisetas Caballero */}
+                {/* Camisetas Caballero + Colecciones */}
                 {(() => {
                   const conjuntoCat = categories.find((c) => c.slug === "conjuntos");
                   const caballeroProducts = products.filter((p) => {
@@ -700,12 +700,35 @@ export default function Storefront({ products, categories }: Props) {
                             onClickProduct={(id) => { setActiveProductId(id); navigate("product"); }}
                           />
                         ))}
+                        {/* Colecciones card */}
+                        <div
+                          className="bg-gradient-to-br from-dark-bg to-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-700 hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus:ring-2 focus:ring-col-yellow"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => navigate("collections")}
+                          onKeyDown={onActivate(() => navigate("collections"))}
+                        >
+                          <div className="aspect-square md:aspect-[4/5] flex items-center justify-center relative overflow-hidden">
+                            <div className="text-center px-8">
+                              <div className="w-16 h-16 bg-col-yellow/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                                <ShoppingBag className="w-8 h-8 text-col-yellow" />
+                              </div>
+                              <h3 className="font-display text-xl font-bold text-white mb-2">Conjuntos</h3>
+                              <p className="text-gray-400 text-sm">Conjuntos deportivos exclusivos para caballero.</p>
+                            </div>
+                          </div>
+                          <div className="p-5 border-t border-gray-700">
+                            <span className="text-col-yellow font-bold text-sm flex items-center gap-2 justify-center group-hover:gap-3 transition-all">
+                              Ver Colecciones <ArrowRight className="w-4 h-4" />
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
                 })()}
 
-                {/* Camisetas Dama */}
+                {/* Camisetas Dama + Colecciones */}
                 {(() => {
                   const conjuntoCat = categories.find((c) => c.slug === "conjuntos");
                   const damaProducts = products.filter((p) => {
@@ -727,36 +750,33 @@ export default function Storefront({ products, categories }: Props) {
                             onClickProduct={(id) => { setActiveProductId(id); navigate("product"); }}
                           />
                         ))}
+                        {/* Colecciones card */}
+                        <div
+                          className="bg-gradient-to-br from-dark-bg to-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-700 hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus:ring-2 focus:ring-col-yellow"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => navigate("collections")}
+                          onKeyDown={onActivate(() => navigate("collections"))}
+                        >
+                          <div className="aspect-square md:aspect-[4/5] flex items-center justify-center relative overflow-hidden">
+                            <div className="text-center px-8">
+                              <div className="w-16 h-16 bg-col-yellow/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                                <ShoppingBag className="w-8 h-8 text-col-yellow" />
+                              </div>
+                              <h3 className="font-display text-xl font-bold text-white mb-2">Conjuntos</h3>
+                              <p className="text-gray-400 text-sm">Conjuntos deportivos exclusivos para dama.</p>
+                            </div>
+                          </div>
+                          <div className="p-5 border-t border-gray-700">
+                            <span className="text-col-yellow font-bold text-sm flex items-center gap-2 justify-center group-hover:gap-3 transition-all">
+                              Ver Colecciones <ArrowRight className="w-4 h-4" />
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
                 })()}
-
-                {/* Tarjeta de Colecciones */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div
-                    className="bg-gradient-to-br from-dark-bg to-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-700 hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus:ring-2 focus:ring-col-yellow"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => navigate("collections")}
-                    onKeyDown={onActivate(() => navigate("collections"))}
-                  >
-                    <div className="aspect-square md:aspect-[4/5] flex items-center justify-center relative overflow-hidden">
-                      <div className="text-center px-8">
-                        <div className="w-20 h-20 bg-col-yellow/20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                          <ShoppingBag className="w-10 h-10 text-col-yellow" />
-                        </div>
-                        <h3 className="font-display text-2xl font-bold text-white mb-2">Colecciones</h3>
-                        <p className="text-gray-400 text-sm">Descubre nuestros conjuntos deportivos exclusivos.</p>
-                      </div>
-                    </div>
-                    <div className="p-6 border-t border-gray-700">
-                      <span className="text-col-yellow font-bold text-sm flex items-center gap-2 justify-center group-hover:gap-3 transition-all">
-                        Ver Colecciones <ArrowRight className="w-4 h-4" />
-                      </span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </section>
 
@@ -1304,7 +1324,20 @@ export default function Storefront({ products, categories }: Props) {
                       </button>
 
                       {isExpanded && (
-                        <div className="border-t border-gray-700 p-4">
+                        <div className="border-t border-gray-700 p-4 space-y-4">
+                          {/* Reference box */}
+                          <div className="bg-gray-900/60 rounded-lg p-3 border border-gray-600">
+                            <p className="text-xs text-gray-400 mb-1">Referencia de pedido (guárdala para devoluciones)</p>
+                            <p className="text-col-yellow font-mono font-bold text-sm select-all break-all">{order.reference}</p>
+                          </div>
+
+                          {/* Order info */}
+                          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-400">
+                            <span>Fecha: <span className="text-white">{new Date(order.created_at).toLocaleString("es-CO")}</span></span>
+                            <span>Estado Wompi: <span className="text-white">{order.wompi_status || "—"}</span></span>
+                          </div>
+
+                          {/* Items */}
                           <div className="space-y-2">
                             {order.items.map((item) => (
                               <div key={item.id} className="flex items-center justify-between text-sm">
@@ -1316,7 +1349,7 @@ export default function Storefront({ products, categories }: Props) {
                               </div>
                             ))}
                           </div>
-                          <div className="mt-3 pt-3 border-t border-gray-700 flex justify-between text-sm">
+                          <div className="pt-3 border-t border-gray-700 flex justify-between text-sm">
                             <span className="text-gray-400">Total</span>
                             <span className="text-white font-bold">${(order.total_cop).toLocaleString("es-CO")}</span>
                           </div>

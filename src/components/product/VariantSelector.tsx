@@ -179,7 +179,7 @@ export default function VariantSelector({
         </button>
       </div>
 
-      <SizeGuide open={sizeGuideOpen} onClose={() => setSizeGuideOpen(false)} />
+      <SizeGuide open={sizeGuideOpen} onClose={() => setSizeGuideOpen(false)} gender={selectedGender} />
     </>
   );
 }
