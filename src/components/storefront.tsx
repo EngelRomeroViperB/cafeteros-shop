@@ -695,7 +695,7 @@ export default function Storefront({ products, categories }: Props) {
             </nav>
 
             <div className="flex flex-col lg:flex-row gap-6 md:gap-12 lg:gap-20">
-              <ProductGallery product={activeProduct} selectedGender={selectedGender} />
+              <ProductGallery product={activeProduct} />
 
               {/* Detalles del Producto */}
               <div className="w-full lg:w-1/2 flex flex-col justify-center">
