@@ -18,6 +18,7 @@ type WompiWebhookEvent = {
     checksum: string;
     properties: string[];
   };
+  timestamp: number;
 };
 
 function verifyWompiEvent(payload: WompiWebhookEvent): boolean {
@@ -33,28 +34,26 @@ function verifyWompiEvent(payload: WompiWebhookEvent): boolean {
 
   const tx = payload.data.transaction;
 
-  // Build hash string from the properties array Wompi sends
-  // Properties are dot-separated paths like "transaction.id", "transaction.status", etc.
+  // Build hash per Wompi docs:
+  // 1. Concatenate values from signature.properties (pointing to fields in data.transaction)
+  // 2. Concatenate the timestamp field (UNIX timestamp integer)
+  // 3. Concatenate the events secret
   const properties = payload.signature.properties ?? [];
   let concatenated = "";
 
-  if (properties.length > 0) {
-    for (const prop of properties) {
-      const key = prop.replace("transaction.", "");
-      const value = (tx as Record<string, unknown>)[key];
-      concatenated += String(value ?? "");
-    }
-  } else {
-    // Fallback: default Wompi order
-    concatenated = `${tx.id}${tx.status}${tx.amount_in_cents}`;
+  for (const prop of properties) {
+    const key = prop.replace("transaction.", "");
+    const value = (tx as Record<string, unknown>)[key];
+    concatenated += String(value ?? "");
   }
 
-  const base = `${concatenated}${eventsSecret}`;
+  const base = `${concatenated}${payload.timestamp}${eventsSecret}`;
   const hash = crypto.createHash("sha256").update(base).digest("hex");
 
   console.log("[WEBHOOK] Signature verification:", {
     properties,
     concatenated,
+    timestamp: payload.timestamp,
     computed: hash,
     received: payload.signature.checksum,
     match: hash === payload.signature.checksum,

@@ -20,9 +20,15 @@ import { POST } from "./route";
 import { checkRate } from "@/lib/rate-limit";
 
 const EVENTS_SECRET = "test_events_secret";
+const TIMESTAMP = 1710820000;
 
-function makeSignature(tx: { id: string; status: string; amount_in_cents: number; currency: string }) {
-  const base = `${tx.id}${tx.status}${tx.amount_in_cents}${tx.currency}${EVENTS_SECRET}`;
+function makeSignature(tx: { id: string; status: string; amount_in_cents: number }, timestamp = TIMESTAMP, properties = ["transaction.id", "transaction.status", "transaction.amount_in_cents"]) {
+  let concatenated = "";
+  for (const prop of properties) {
+    const key = prop.replace("transaction.", "");
+    concatenated += String((tx as Record<string, unknown>)[key] ?? "");
+  }
+  const base = `${concatenated}${timestamp}${EVENTS_SECRET}`;
   return crypto.createHash("sha256").update(base).digest("hex");
 }
 
@@ -35,15 +41,17 @@ function makeWebhookRequest(payload: Record<string, unknown>): Request {
 }
 
 function validTx() {
-  return { id: "tx-1", reference: "tricolor-123", status: "APPROVED", amount_in_cents: 15000000, currency: "COP" };
+  return { id: "tx-1", reference: "cafeteros-123", status: "APPROVED", amount_in_cents: 15000000, currency: "COP" };
 }
 
 function validPayload() {
   const tx = validTx();
+  const properties = ["transaction.id", "transaction.status", "transaction.amount_in_cents"];
   return {
     event: "transaction.updated",
     data: { transaction: tx },
-    signature: { checksum: makeSignature(tx), properties: [] },
+    signature: { checksum: makeSignature(tx, TIMESTAMP, properties), properties },
+    timestamp: TIMESTAMP,
   };
 }
 
@@ -143,10 +151,12 @@ describe("POST /api/wompi/webhook", () => {
 
   it("updates order status to declined without decrementing stock", async () => {
     const tx = { ...validTx(), status: "DECLINED" };
+    const properties = ["transaction.id", "transaction.status", "transaction.amount_in_cents"];
     const payload = {
       event: "transaction.updated",
       data: { transaction: tx },
-      signature: { checksum: makeSignature(tx), properties: [] },
+      signature: { checksum: makeSignature(tx, TIMESTAMP, properties), properties },
+      timestamp: TIMESTAMP,
     };
 
     mockFrom.mockImplementation((table: string) => {
