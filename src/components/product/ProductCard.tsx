@@ -1,5 +1,4 @@
 "use client";
-
 import Image from "next/image";
 import { ShoppingBag, ShoppingCart, ArrowRight } from "lucide-react";
 import { formatCOP } from "@/lib/format";
@@ -34,7 +33,8 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
   const thumb = getThumb(product);
   const secondImg = getSecondImage(product);
   const isDark = product.name.toLowerCase().includes("visitante");
-  const descriptionClampClass = "overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:1] md:[-webkit-line-clamp:2]";
+  const descriptionClampClass =
+    "overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:1] md:[-webkit-line-clamp:2]";
 
   if (variant === "featured") {
     return (
@@ -47,15 +47,16 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        <div className="aspect-[5/4] bg-gray-100 flex items-center justify-center relative overflow-hidden">
+        {/* Imagen — aspect 3/4 para fotos de moda, object-cover para llenar el contenedor */}
+        <div className="aspect-[3/4] bg-gray-50 flex items-center justify-center relative overflow-hidden">
           {thumb ? (
             <>
               <Image
                 src={thumb}
                 alt={product.name}
                 fill
-                className={`object-contain drop-shadow-lg transition-all duration-500 p-2 ${
-                  hovered && secondImg ? "opacity-0 scale-105" : "opacity-100 scale-100 group-hover:scale-110"
+                className={`object-cover transition-all duration-500 ${
+                  hovered && secondImg ? "opacity-0 scale-105" : "opacity-100 scale-100 group-hover:scale-105"
                 }`}
                 sizes="(max-width: 768px) 100vw, 33vw"
               />
@@ -64,7 +65,7 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
                   src={secondImg}
                   alt={`${product.name} alt`}
                   fill
-                  className={`object-contain drop-shadow-lg transition-all duration-500 p-2 ${
+                  className={`object-cover transition-all duration-500 ${
                     hovered ? "opacity-100 scale-100" : "opacity-0 scale-95"
                   }`}
                   sizes="(max-width: 768px) 100vw, 33vw"
@@ -80,9 +81,12 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
             </span>
           )}
         </div>
-        <div className="p-3">
+
+        <div className="p-5 md:p-4">
           <h3 className="font-bold text-xl text-dark-bg mb-1">{product.name}</h3>
-          <p className={`text-gray-500 text-sm mb-2 min-h-[1.25rem] ${descriptionClampClass}`}>{product.description}</p>
+          {product.description && (
+            <p className={`text-gray-500 text-sm mb-2 ${descriptionClampClass}`}>{product.description}</p>
+          )}
           <div className="flex justify-between items-center">
             <span className="font-bold text-col-blue text-lg">
               {firstVariant ? formatCOP(firstVariant.price_cop) : ""}
@@ -98,7 +102,7 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
 
   return (
     <div
-      className={`bg-white rounded-2xl p-3 shadow-lg border hover:shadow-xl transition-all duration-300 relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-col-blue h-full ${
+      className={`bg-white rounded-2xl p-5 md:p-6 shadow-lg border hover:shadow-xl transition-all duration-300 relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-col-blue h-full ${
         product.badge === "Más Vendida" ? "border-col-yellow" : "border-gray-100"
       }`}
       role="button"
@@ -119,9 +123,10 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
         </div>
       )}
 
+      {/* Imagen — aspect 3/4, object-cover, sin padding, fondo neutro */}
       <div
-        className={`aspect-[5/4] rounded-xl mb-3 flex items-center justify-center overflow-hidden relative group-hover:scale-[1.02] transition-transform ${
-          isDark ? "bg-gray-900" : "bg-gray-100"
+        className={`aspect-[3/4] rounded-xl mb-4 flex items-center justify-center overflow-hidden relative group-hover:scale-[1.02] transition-transform ${
+          isDark ? "bg-gray-900" : "bg-gray-50"
         }`}
       >
         {thumb ? (
@@ -130,7 +135,7 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
               src={thumb}
               alt={product.name}
               fill
-              className={`object-contain drop-shadow-md p-2 transition-all duration-500 ${
+              className={`object-cover transition-all duration-500 ${
                 hovered && secondImg ? "opacity-0 scale-105" : "opacity-100"
               }`}
               sizes="(max-width: 768px) 100vw, 33vw"
@@ -140,7 +145,7 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
                 src={secondImg}
                 alt={`${product.name} alt`}
                 fill
-                className={`object-contain drop-shadow-md p-2 transition-all duration-500 ${
+                className={`object-cover transition-all duration-500 ${
                   hovered ? "opacity-100 scale-100" : "opacity-0 scale-95"
                 }`}
                 sizes="(max-width: 768px) 100vw, 33vw"
@@ -150,11 +155,14 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
         ) : (
           <ShoppingBag
             className={`w-32 h-32 drop-shadow-md ${
-              isDark ? "text-gray-800 border-[1px] border-gray-700/50 fill-gray-800 rounded-md" : "text-col-yellow"
+              isDark
+                ? "text-gray-800 border-[1px] border-gray-700/50 fill-gray-800 rounded-md"
+                : "text-col-yellow"
             }`}
           />
         )}
       </div>
+
       <div className="space-y-1.5">
         <div className="flex justify-between items-start">
           <h3 className="font-bold text-xl text-dark-bg">{product.name}</h3>
@@ -162,7 +170,9 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
             {firstVariant ? formatCOP(firstVariant.price_cop) : "Sin precio"}
           </span>
         </div>
-        <p className={`text-gray-500 text-sm min-h-[1.25rem] ${descriptionClampClass}`}>{product.description}</p>
+        {product.description && (
+          <p className={`text-gray-500 text-sm ${descriptionClampClass}`}>{product.description}</p>
+        )}
         {onQuickAdd && (
           <div className="pt-3 flex gap-2">
             <button
