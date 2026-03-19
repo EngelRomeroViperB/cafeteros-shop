@@ -54,7 +54,7 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
                 src={thumb}
                 alt={product.name}
                 fill
-                className={`object-contain drop-shadow-lg transition-all duration-500 p-[12%] ${
+                className={`object-contain drop-shadow-lg transition-all duration-500 p-[5%] ${
                   hovered && secondImg ? "opacity-0 scale-105" : "opacity-100 scale-100 group-hover:scale-110"
                 }`}
                 sizes="(max-width: 768px) 100vw, 33vw"
@@ -64,7 +64,7 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
                   src={secondImg}
                   alt={`${product.name} alt`}
                   fill
-                  className={`object-contain drop-shadow-lg transition-all duration-500 p-[12%] ${
+                  className={`object-contain drop-shadow-lg transition-all duration-500 p-[5%] ${
                     hovered ? "opacity-100 scale-100" : "opacity-0 scale-95"
                   }`}
                   sizes="(max-width: 768px) 100vw, 33vw"
@@ -80,7 +80,7 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
             </span>
           )}
         </div>
-        <div className="p-5 md:p-6">
+        <div className="p-4 md:p-3">
           <h3 className="font-bold text-xl text-dark-bg mb-1">{product.name}</h3>
           <p className={`text-gray-500 text-sm mb-2 min-h-5 ${descriptionClampClass}`}>{product.description}</p>
           <div className="flex justify-between items-center">
