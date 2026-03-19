@@ -1,5 +1,4 @@
 "use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ShoppingBag } from "lucide-react";
@@ -7,12 +6,10 @@ import type { Product, ProductMedia } from "@/types/store";
 
 type Props = {
   product: Product;
-  selectedGender: "Dama" | "Caballero";
 };
 
-export default function ProductGallery({ product, selectedGender }: Props) {
-  const rawMedia: ProductMedia[] = product.media ?? [];
-  const allMedia = rawMedia.filter((m) => !m.gender || m.gender === selectedGender);
+export default function ProductGallery({ product }: Props) {
+  const allMedia: ProductMedia[] = product.media ?? [];
   const hasMedia = allMedia.length > 0;
 
   const primaryIdx = allMedia.findIndex((m) => m.media_type === "image" && m.is_primary);
@@ -21,12 +18,12 @@ export default function ProductGallery({ product, selectedGender }: Props) {
   const [selectedIdx, setSelectedIdx] = useState(initialIdx);
   const carouselRef = useRef<HTMLDivElement>(null);
 
-  // Reset index when gender or product changes
+  // Reset index when product changes
   useEffect(() => {
     const idx = allMedia.findIndex((m) => m.media_type === "image" && m.is_primary);
     setSelectedIdx(idx >= 0 ? idx : 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedGender, product.id]);
+  }, [product.id]);
 
   const current = hasMedia ? allMedia[selectedIdx] ?? allMedia[0] : null;
   const fallbackImg = product.image_url;
@@ -35,9 +32,7 @@ export default function ProductGallery({ product, selectedGender }: Props) {
   const handleScroll = useCallback(() => {
     const el = carouselRef.current;
     if (!el) return;
-    const scrollLeft = el.scrollLeft;
-    const itemWidth = el.clientWidth;
-    const newIdx = Math.round(scrollLeft / itemWidth);
+    const newIdx = Math.round(el.scrollLeft / el.clientWidth);
     if (newIdx !== selectedIdx && newIdx >= 0 && newIdx < allMedia.length) {
       setSelectedIdx(newIdx);
     }
@@ -53,16 +48,18 @@ export default function ProductGallery({ product, selectedGender }: Props) {
 
   return (
     <div className="w-full lg:w-1/2">
-      {/* Desktop: large image + thumbnails */}
+
+      {/* ── Desktop ── */}
       <div className="hidden md:block">
-        <div className="bg-gray-100 rounded-3xl aspect-[4/5] flex items-center justify-center relative shadow-inner overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 to-white opacity-50" />
+
+        {/* Imagen principal */}
+        <div className="bg-gray-50 rounded-3xl aspect-[3/4] relative shadow-inner overflow-hidden">
           {current ? (
             current.media_type === "video" ? (
               <video
                 key={current.id}
                 src={current.url}
-                className="w-full h-full object-contain relative z-10"
+                className="w-full h-full object-cover"
                 controls
                 playsInline
                 muted
@@ -74,7 +71,7 @@ export default function ProductGallery({ product, selectedGender }: Props) {
                 src={current.url}
                 alt={product.name}
                 fill
-                className="object-contain drop-shadow-2xl z-10 transform transition-transform duration-700 hover:scale-125 p-[12%]"
+                className="object-cover transition-transform duration-500 hover:scale-110"
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 priority
               />
@@ -84,13 +81,14 @@ export default function ProductGallery({ product, selectedGender }: Props) {
               src={fallbackImg}
               alt={product.name}
               fill
-              className="object-contain drop-shadow-2xl z-10 transform transition-transform duration-700 hover:scale-125 p-[12%]"
+              className="object-cover transition-transform duration-500 hover:scale-110"
               sizes="(max-width: 1024px) 100vw, 50vw"
               priority
             />
           ) : (
-            <ShoppingBag className="w-64 h-64 text-col-yellow drop-shadow-2xl relative z-10" />
+            <ShoppingBag className="absolute inset-0 m-auto w-32 h-32 text-col-yellow" />
           )}
+
           {product.badge && (
             <div className="absolute top-6 left-6 bg-col-red text-white text-xs font-bold px-4 py-1.5 rounded-full z-20 uppercase tracking-wider">
               {product.badge}
@@ -98,20 +96,21 @@ export default function ProductGallery({ product, selectedGender }: Props) {
           )}
         </div>
 
+        {/* Thumbnails — relative en el botón para que fill funcione */}
         {hasMedia && allMedia.length > 1 && (
-          <div className="grid grid-cols-4 gap-4 mt-4">
+          <div className="grid grid-cols-4 gap-3 mt-4">
             {allMedia.map((m, idx) => (
               <button
                 key={m.id}
                 onClick={() => setSelectedIdx(idx)}
-                className={`bg-gray-100 rounded-xl aspect-square flex items-center justify-center cursor-pointer overflow-hidden transition-all ${
+                className={`relative bg-gray-50 rounded-xl aspect-square overflow-hidden transition-all ${
                   idx === selectedIdx
                     ? "border-2 border-col-blue ring-2 ring-col-blue/20"
                     : "border border-gray-200 hover:border-gray-400"
                 }`}
               >
                 {m.media_type === "video" ? (
-                  <div className="relative w-full h-full flex items-center justify-center bg-gray-200">
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
                     <span className="text-xs font-bold text-gray-500">▶ Video</span>
                   </div>
                 ) : (
@@ -119,8 +118,8 @@ export default function ProductGallery({ product, selectedGender }: Props) {
                     src={m.url}
                     alt={`Miniatura ${idx + 1}`}
                     fill
-                    className="object-contain p-[12%]"
-                    sizes="80px"
+                    className="object-cover"
+                    sizes="120px"
                   />
                 )}
               </button>
@@ -129,7 +128,7 @@ export default function ProductGallery({ product, selectedGender }: Props) {
         )}
       </div>
 
-      {/* Mobile: horizontal snap carousel + dots */}
+      {/* ── Mobile ── */}
       <div className="md:hidden">
         {hasMedia && allMedia.length > 1 ? (
           <>
@@ -142,12 +141,12 @@ export default function ProductGallery({ product, selectedGender }: Props) {
               {allMedia.map((m, idx) => (
                 <div
                   key={m.id}
-                  className="snap-center flex-shrink-0 w-full aspect-square bg-gray-100 rounded-2xl flex items-center justify-center relative overflow-hidden"
+                  className="snap-center flex-shrink-0 w-full aspect-[3/4] bg-gray-50 rounded-2xl relative overflow-hidden"
                 >
                   {m.media_type === "video" ? (
                     <video
                       src={m.url}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-cover"
                       controls
                       playsInline
                       muted
@@ -157,7 +156,7 @@ export default function ProductGallery({ product, selectedGender }: Props) {
                       src={m.url}
                       alt={`${product.name} ${idx + 1}`}
                       fill
-                      className="object-contain p-[12%]"
+                      className="object-cover"
                       sizes="100vw"
                       priority={idx === 0}
                     />
@@ -170,6 +169,7 @@ export default function ProductGallery({ product, selectedGender }: Props) {
                 </div>
               ))}
             </div>
+
             {/* Dots */}
             <div className="flex justify-center gap-2 mt-3">
               {allMedia.map((_, idx) => (
@@ -187,13 +187,13 @@ export default function ProductGallery({ product, selectedGender }: Props) {
             </div>
           </>
         ) : (
-          <div className="bg-gray-100 rounded-2xl aspect-square flex items-center justify-center relative shadow-inner overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 to-white opacity-50" />
+          /* Mobile — imagen única */
+          <div className="bg-gray-50 rounded-2xl aspect-[3/4] relative overflow-hidden">
             {current ? (
               current.media_type === "video" ? (
                 <video
                   src={current.url}
-                  className="w-full h-full object-contain relative z-10"
+                  className="w-full h-full object-cover"
                   controls
                   playsInline
                   muted
@@ -203,7 +203,7 @@ export default function ProductGallery({ product, selectedGender }: Props) {
                   src={current.url}
                   alt={product.name}
                   fill
-                  className="object-contain drop-shadow-2xl z-10 p-[12%]"
+                  className="object-cover"
                   sizes="100vw"
                   priority
                 />
@@ -213,12 +213,12 @@ export default function ProductGallery({ product, selectedGender }: Props) {
                 src={fallbackImg}
                 alt={product.name}
                 fill
-                className="object-contain drop-shadow-2xl z-10 p-[12%]"
+                className="object-cover"
                 sizes="100vw"
                 priority
               />
             ) : (
-              <ShoppingBag className="w-48 h-48 text-col-yellow drop-shadow-2xl relative z-10" />
+              <ShoppingBag className="absolute inset-0 m-auto w-48 h-48 text-col-yellow" />
             )}
             {product.badge && (
               <div className="absolute top-4 left-4 bg-col-red text-white text-xs font-bold px-3 py-1 rounded-full z-20 uppercase tracking-wider">
@@ -228,6 +228,7 @@ export default function ProductGallery({ product, selectedGender }: Props) {
           </div>
         )}
       </div>
+
     </div>
   );
 }
