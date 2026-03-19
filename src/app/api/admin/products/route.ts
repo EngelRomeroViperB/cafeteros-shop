@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
             .from("product_variants")
             .select("*")
             .in("product_id", productIds)
-            .order("price_cop", { ascending: true })
+            .order("sort_order", { ascending: true })
         : { data: [], error: null },
       productIds.length > 0
         ? supabase

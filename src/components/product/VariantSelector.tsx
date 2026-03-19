@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { Minus, Plus, ShoppingBag, Wind } from "lucide-react";
 import { formatCOP } from "@/lib/format";
@@ -50,10 +49,8 @@ export default function VariantSelector({
 
   const availableGenders = [...new Set(product.variants.map((v) => v.gender))];
   const sizesForGender = product.variants.filter((v) => v.gender === selectedGender);
-
   const activeVariant: ProductVariant | null =
     product.variants.find((v) => v.id === selectedVariantId) ?? null;
-
   const canAdd = activeVariant !== null && activeVariant.stock > 0;
 
   return (
@@ -74,31 +71,33 @@ export default function VariantSelector({
         {product.description}
       </p>
 
-      {/* Paso 1: Género */}
-      <div className="mb-6">
-        <h3 className="font-bold text-gray-900 mb-3">Selecciona el género</h3>
-        <div className="flex gap-3">
-          {availableGenders.map((g) => (
-            <button
-              key={g}
-              type="button"
-              onClick={() => {
-                onGenderChange(g);
-                const firstWithStock =
-                  product.variants.find((v) => v.gender === g && v.stock > 0) ??
-                  product.variants.find((v) => v.gender === g);
-                if (firstWithStock) onVariantChange(firstWithStock.id);
-                setQty(1);
-              }}
-              className={`flex-1 rounded-xl py-3 text-center transition-all font-medium ${
-                selectedGender === g
-                  ? "border-2 border-col-blue bg-blue-50 text-col-blue font-bold shadow-sm"
-                  : "border border-gray-300 hover:border-col-blue hover:text-col-blue"
-              }`}
-            >
-              {g}
-            </button>
-          ))}
+      {/* Paso 1: Género — oculto */}
+      <div className="hidden">
+        <div className="mb-6">
+          <h3 className="font-bold text-gray-900 mb-3">Selecciona el género</h3>
+          <div className="flex gap-3">
+            {availableGenders.map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => {
+                  onGenderChange(g);
+                  const firstWithStock =
+                    product.variants.find((v) => v.gender === g && v.stock > 0) ??
+                    product.variants.find((v) => v.gender === g);
+                  if (firstWithStock) onVariantChange(firstWithStock.id);
+                  setQty(1);
+                }}
+                className={`flex-1 rounded-xl py-3 text-center transition-all font-medium ${
+                  selectedGender === g
+                    ? "border-2 border-col-blue bg-blue-50 text-col-blue font-bold shadow-sm"
+                    : "border border-gray-300 hover:border-col-blue hover:text-col-blue"
+                }`}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

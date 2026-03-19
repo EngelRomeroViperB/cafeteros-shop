@@ -20,6 +20,7 @@ const fallbackProducts: Product[] = [
         gender: "Caballero" as const,
         price_cop: 449900,
         stock: 20,
+        sort_order: 0,
         is_active: true,
       },
     ],
@@ -57,7 +58,7 @@ export async function getFeaturedProducts(): Promise<Product[]> {
         .select("id, product_id, size, gender, price_cop, stock, is_active")
         .in("product_id", productIds)
         .eq("is_active", true)
-        .order("price_cop", { ascending: true }),
+        .order("sort_order", { ascending: true }),
       supabase
         .from("product_media")
         .select("id, product_id, url, media_type, sort_order, is_primary, gender")

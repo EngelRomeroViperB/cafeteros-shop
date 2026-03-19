@@ -60,7 +60,7 @@ export default function AdminPage() {
   const [draft, setDraft] = useState<ProductDraft>({ ...EMPTY_DRAFT });
 
   // variant editing
-  const [variantDraft, setVariantDraft] = useState({ size: "", gender: "Caballero" as "Dama" | "Caballero", price_cop: "", stock: "" });
+  const [variantDraft, setVariantDraft] = useState({ size: "", gender: "Caballero" as "Dama" | "Caballero", price_cop: "", stock: "", sort_order: "" });
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
 
   // media
@@ -204,6 +204,7 @@ export default function AdminPage() {
         gender: variantDraft.gender,
         price_cop: parseInt(variantDraft.price_cop),
         stock: parseInt(variantDraft.stock) || 0,
+        sort_order: parseInt(variantDraft.sort_order) || 0,
       };
       const url = editingVariantId ? "/api/admin/variants" : "/api/admin/variants";
       const method = editingVariantId ? "PUT" : "POST";
@@ -214,7 +215,7 @@ export default function AdminPage() {
         throw new Error(json.error);
       }
       flash(editingVariantId ? "Variante actualizada" : "Variante añadida");
-      setVariantDraft({ size: "", gender: "Caballero", price_cop: "", stock: "" });
+      setVariantDraft({ size: "", gender: "Caballero", price_cop: "", stock: "", sort_order: "" });
       setEditingVariantId(null);
       await fetchAll();
     } catch (err: unknown) {
@@ -241,6 +242,7 @@ export default function AdminPage() {
       gender: v.gender,
       price_cop: String(v.price_cop),
       stock: String(v.stock),
+      sort_order: String(v.sort_order ?? 0),
     });
   };
 
@@ -698,6 +700,15 @@ export default function AdminPage() {
                       className="bg-gray-800 rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-400 focus:outline-none text-white text-sm"
                     />
                   </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
+                    <input
+                      type="number"
+                      placeholder="Orden (0, 1, 2...)"
+                      value={variantDraft.sort_order}
+                      onChange={(e) => setVariantDraft((d) => ({ ...d, sort_order: e.target.value }))}
+                      className="bg-gray-800 rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-400 focus:outline-none text-white text-sm"
+                    />
+                  </div>
                   <div className="flex gap-2 mt-3">
                     <button
                       onClick={addVariant}
@@ -710,7 +721,7 @@ export default function AdminPage() {
                       <button
                         onClick={() => {
                           setEditingVariantId(null);
-                          setVariantDraft({ size: "", gender: "Caballero", price_cop: "", stock: "" });
+                          setVariantDraft({ size: "", gender: "Caballero", price_cop: "", stock: "", sort_order: "" });
                         }}
                         className="text-gray-500 hover:text-white px-3 py-2 text-sm"
                       >

@@ -33,6 +33,7 @@ create table if not exists public.product_variants (
   gender text not null check (gender in ('Dama', 'Caballero')),
   price_cop integer not null check (price_cop > 0),
   stock integer not null default 0 check (stock >= 0),
+  sort_order integer not null default 0,
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -73,8 +74,8 @@ create table if not exists public.orders (
 create table if not exists public.order_items (
   id uuid primary key default gen_random_uuid(),
   order_id uuid not null references public.orders(id) on delete cascade,
-  product_id uuid not null references public.products(id),
-  variant_id uuid references public.product_variants(id),
+  product_id uuid references public.products(id) on delete set null,
+  variant_id uuid references public.product_variants(id) on delete set null,
   title text not null,
   selected_size text,
   selected_gender text,

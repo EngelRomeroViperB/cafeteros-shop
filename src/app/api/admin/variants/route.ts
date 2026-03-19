@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
       gender: body.gender,
       price_cop: body.price_cop,
       stock: body.stock ?? 0,
+      sort_order: body.sort_order ?? 0,
       is_active: body.is_active ?? true,
     })
     .select()
@@ -60,6 +61,7 @@ export async function PUT(req: NextRequest) {
       gender: body.gender,
       price_cop: body.price_cop,
       stock: body.stock ?? 0,
+      sort_order: body.sort_order ?? 0,
       is_active: body.is_active ?? true,
     })
     .eq("id", body.id)
