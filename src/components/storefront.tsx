@@ -635,8 +635,7 @@ export default function Storefront({ products, categories }: Props) {
                         <ul className="text-gray-600 text-sm leading-relaxed space-y-1">
                           <li>• Envío gratis a partir de $200.000 COP</li>
                           <li>• Entrega en 3-5 días hábiles a nivel nacional</li>
-                          <li>• Recuerda que tienes 0 días desde la fecha de recepción de tu pedido para iniciar tu proceso de cambio</li>
-                          <li>• Si la talla que te llegó es la incorrecta escribe a nuestro chat: 3241947654</li>
+                          <li></li>
                         </ul>
                       </div>
                     </div>
@@ -811,7 +810,7 @@ export default function Storefront({ products, categories }: Props) {
             <div className="bg-dark-bg border border-gray-700 rounded-3xl p-8 md:p-12 w-full max-w-md relative z-10 shadow-2xl backdrop-blur-xl">
               <div className="text-center mb-8">
                 <div className="w-16 h-16 rounded-full bg-col-yellow mx-auto flex items-center justify-center mb-4 border-2 border-col-blue shadow-[0_0_15px_rgba(252,209,22,0.4)] cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={onActivate(() => navigate("home"))} aria-label="Ir al inicio">
-                  <span className="font-display font-bold text-col-blue text-2xl">FCF</span>
+                  <span className="font-display font-bold text-col-blue text-2xl">CF</span>
                 </div>
                 <h2 className="font-display text-2xl font-bold text-white">{userEmail ? "Tu cuenta" : "Inicia Sesión"}</h2>
                 <p className="text-gray-400 mt-2 text-sm">{userEmail ? `Conectado como ${userEmail}` : "Accede para continuar con tu compra"}</p>

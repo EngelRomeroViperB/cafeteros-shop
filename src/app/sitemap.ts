@@ -13,10 +13,28 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     {
-      url: `${siteUrl}/checkout/result`,
+      url: `${siteUrl}/#destacados`,
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+    {
+      url: `${siteUrl}/#colecciones`,
       lastModified: now,
       changeFrequency: "weekly",
-      priority: 0.5,
+      priority: 0.8,
+    },
+    {
+      url: `${siteUrl}/#detalles`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    {
+      url: `${siteUrl}/checkout/result`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.3,
     },
   ];
 }
