@@ -11,10 +11,8 @@ type Props = {
 export default function ProductGallery({ product }: Props) {
   const allMedia: ProductMedia[] = product.media ?? [];
   const hasMedia = allMedia.length > 0;
-
   const primaryIdx = allMedia.findIndex((m) => m.media_type === "image" && m.is_primary);
   const initialIdx = primaryIdx >= 0 ? primaryIdx : 0;
-
   const [selectedIdx, setSelectedIdx] = useState(initialIdx);
   const carouselRef = useRef<HTMLDivElement>(null);
 
@@ -51,7 +49,6 @@ export default function ProductGallery({ product }: Props) {
 
       {/* ── Desktop ── */}
       <div className="hidden md:block">
-
         {/* Imagen principal */}
         <div className="bg-gray-50 rounded-3xl aspect-[3/4] relative shadow-inner overflow-hidden">
           {current ? (
@@ -88,7 +85,6 @@ export default function ProductGallery({ product }: Props) {
           ) : (
             <ShoppingBag className="absolute inset-0 m-auto w-32 h-32 text-col-yellow" />
           )}
-
           {product.badge && (
             <div className="absolute top-6 left-6 bg-col-red text-white text-xs font-bold px-4 py-1.5 rounded-full z-20 uppercase tracking-wider">
               {product.badge}
@@ -96,7 +92,7 @@ export default function ProductGallery({ product }: Props) {
           )}
         </div>
 
-        {/* Thumbnails — relative en el botón para que fill funcione */}
+        {/* Thumbnails */}
         {hasMedia && allMedia.length > 1 && (
           <div className="grid grid-cols-4 gap-3 mt-4">
             {allMedia.map((m, idx) => (
@@ -110,8 +106,17 @@ export default function ProductGallery({ product }: Props) {
                 }`}
               >
                 {m.media_type === "video" ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
-                    <span className="text-xs font-bold text-gray-500">▶ Video</span>
+                  <div className="absolute inset-0">
+                    <video
+                      src={m.url}
+                      className="w-full h-full object-cover"
+                      preload="metadata"
+                      muted
+                      playsInline
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                      <span className="text-white text-lg">▶</span>
+                    </div>
                   </div>
                 ) : (
                   <Image

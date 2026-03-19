@@ -997,7 +997,7 @@ export default function Storefront({ products, categories }: Props) {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
-            <p>&copy; 2026 Cafeteros Shop. Página no oficial de demostración | Engel Romero</p>
+            <p>&copy; 2026 Cafeteros Shop. Página no oficial de demostración </p>
           </div>
         </div>
       </footer>
