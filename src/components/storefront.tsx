@@ -16,6 +16,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   Trash2,
+  Truck,
   User,
   Wind,
   X,
@@ -38,7 +39,7 @@ type Props = {
   categories: Category[];
 };
 
-type ViewName = "home" | "product" | "cart" | "login" | "collections";
+type ViewName = "home" | "product" | "cart" | "checkout" | "login" | "collections";
 
 const supabase = createBrowserSupabaseClient();
 
@@ -119,9 +120,18 @@ export default function Storefront({ products, categories }: Props) {
   const [filterGender, setFilterGender] = useState<GenderFilter>("all");
   const [filterSort, setFilterSort] = useState<SortOption>("default");
 
+  // Shipping form
+  const [shippingName, setShippingName] = useState("");
+  const [shippingPhone, setShippingPhone] = useState("");
+  const [shippingAddress, setShippingAddress] = useState("");
+  const [shippingCity, setShippingCity] = useState("");
+  const [shippingDepartment, setShippingDepartment] = useState("");
+  const [shippingNotes, setShippingNotes] = useState("");
+
   // Zustand cart
   const cartItems = useCart((s) => s.items);
   const addItemToCart = useCart((s) => s.addItem);
+  const clearCart = useCart((s) => s.clearCart);
   const totalItems = useCartTotalItems();
   const subtotal = useCartSubtotal();
 
@@ -316,14 +326,32 @@ export default function Storefront({ products, categories }: Props) {
     setToast("Sesión cerrada");
   };
 
+  const goToCheckoutForm = () => {
+    if (cartItems.length === 0) {
+      setToast("Tu carrito está vacío");
+      return;
+    }
+    if (!userEmail) {
+      navigate("login");
+      setToast("Inicia sesión para continuar al pago");
+      return;
+    }
+    navigate("checkout");
+  };
+
   const goCheckout = async () => {
+    if (!shippingName.trim() || !shippingPhone.trim() || !shippingAddress.trim() || !shippingCity.trim() || !shippingDepartment.trim()) {
+      setToast("Completa todos los campos obligatorios de envío");
+      return;
+    }
+
     if (cartItems.length === 0) {
       setToast("Tu carrito está vacío");
       return;
     }
 
     if (!userEmail) {
-      setView("login");
+      navigate("login");
       setToast("Inicia sesión para continuar");
       return;
     }
@@ -341,6 +369,14 @@ export default function Storefront({ products, categories }: Props) {
           customerEmail: userEmail,
           userId,
           items: cartItems,
+          shipping: {
+            name: shippingName.trim(),
+            phone: shippingPhone.trim(),
+            address: shippingAddress.trim(),
+            city: shippingCity.trim(),
+            department: shippingDepartment.trim(),
+            notes: shippingNotes.trim(),
+          },
         }),
       });
 
@@ -350,6 +386,13 @@ export default function Storefront({ products, categories }: Props) {
       }
 
       const payload = (await res.json()) as { checkoutUrl: string };
+      clearCart();
+      setShippingName("");
+      setShippingPhone("");
+      setShippingAddress("");
+      setShippingCity("");
+      setShippingDepartment("");
+      setShippingNotes("");
       window.location.href = payload.checkoutUrl;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Error inesperado";
@@ -742,8 +785,8 @@ export default function Storefront({ products, categories }: Props) {
                       <ul className="text-gray-600 text-sm leading-relaxed space-y-1">
                         <li>• Envío gratis a partir de $200.000 COP</li>
                         <li>• Entrega en 3-5 días hábiles a nivel nacional</li>
-                        <li>• Devoluciones gratis dentro de los primeros 30 días</li>
-                        <li>• Producto debe estar sin uso y con etiquetas originales</li>
+                        <li>• </li>
+                        <li>• </li>
                       </ul>
                     </div>
                   </div>
@@ -803,23 +846,139 @@ export default function Storefront({ products, categories }: Props) {
                   </div>
 
                   <button
-                    onClick={() => {
-                      if (!userEmail) {
-                        navigate("login");
-                        setToast("Inicia sesión para continuar al pago");
-                        return;
-                      }
-                      goCheckout().catch(() => null);
-                    }}
-                    disabled={checkingOut || cartItems.length === 0}
+                    onClick={goToCheckoutForm}
+                    disabled={cartItems.length === 0}
                     className="w-full bg-col-blue text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-800 transition-all shadow-lg shadow-blue-900/20 mb-4 flex items-center justify-center gap-2 disabled:opacity-60 disabled:shadow-none"
                   >
-                    {checkingOut ? "Creando pago..." : userEmail ? "Proceder al Pago" : "Inicia sesión para pagar"}
+                    {userEmail ? "Proceder al Pago" : "Inicia sesión para pagar"}
                     <ArrowRight className="w-5 h-5" />
                   </button>
                   
                   <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
                     <Lock className="w-4 h-4" /> Pago 100% seguro con Wompi
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {view === "checkout" && (
+        <div className="page-view block pt-24 md:pt-28 pb-16 md:pb-24 bg-gray-50 min-h-screen">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <nav className="flex text-sm text-gray-500 mb-4 md:mb-8 items-center gap-2">
+              <button onClick={() => navigate("cart")} className="hover:text-col-blue flex-shrink-0">Carrito</button>
+              <ChevronRight className="w-4 h-4" />
+              <span className="text-gray-900 font-medium">Datos de envío</span>
+            </nav>
+
+            <h1 className="font-display text-2xl md:text-3xl font-black text-dark-bg mb-6 md:mb-8 flex items-center gap-3">
+              <Truck className="w-7 h-7 md:w-8 md:h-8 text-col-blue" />
+              Datos de Envío
+            </h1>
+
+            <div className="flex flex-col lg:flex-row gap-8">
+              <div className="w-full lg:w-2/3">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-5">
+                  <div>
+                    <label htmlFor="shipping-name" className="block text-sm font-bold text-gray-700 mb-1">Nombre completo *</label>
+                    <input
+                      id="shipping-name"
+                      type="text"
+                      placeholder="Juan Pérez"
+                      value={shippingName}
+                      onChange={(e) => setShippingName(e.target.value)}
+                      className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-col-blue focus:border-transparent transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="shipping-phone" className="block text-sm font-bold text-gray-700 mb-1">Teléfono / WhatsApp *</label>
+                    <input
+                      id="shipping-phone"
+                      type="tel"
+                      placeholder="300 123 4567"
+                      value={shippingPhone}
+                      onChange={(e) => setShippingPhone(e.target.value)}
+                      className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-col-blue focus:border-transparent transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="shipping-address" className="block text-sm font-bold text-gray-700 mb-1">Dirección de envío *</label>
+                    <input
+                      id="shipping-address"
+                      type="text"
+                      placeholder="Calle 123 #45-67, Apto 201"
+                      value={shippingAddress}
+                      onChange={(e) => setShippingAddress(e.target.value)}
+                      className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-col-blue focus:border-transparent transition-all"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="shipping-city" className="block text-sm font-bold text-gray-700 mb-1">Ciudad *</label>
+                      <input
+                        id="shipping-city"
+                        type="text"
+                        placeholder="Bogotá"
+                        value={shippingCity}
+                        onChange={(e) => setShippingCity(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-col-blue focus:border-transparent transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="shipping-department" className="block text-sm font-bold text-gray-700 mb-1">Departamento *</label>
+                      <input
+                        id="shipping-department"
+                        type="text"
+                        placeholder="Cundinamarca"
+                        value={shippingDepartment}
+                        onChange={(e) => setShippingDepartment(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-col-blue focus:border-transparent transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="shipping-notes" className="block text-sm font-bold text-gray-700 mb-1">Notas adicionales</label>
+                    <textarea
+                      id="shipping-notes"
+                      placeholder="Indicaciones especiales para la entrega..."
+                      value={shippingNotes}
+                      onChange={(e) => setShippingNotes(e.target.value)}
+                      rows={3}
+                      className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-col-blue focus:border-transparent transition-all resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full lg:w-1/3">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-28">
+                  <h3 className="font-bold text-gray-900 mb-4">Resumen del pedido</h3>
+                  <div className="space-y-2 mb-4">
+                    {cartItems.map((item) => (
+                      <div key={item.variantId} className="flex justify-between text-sm">
+                        <span className="text-gray-600 truncate mr-2">{item.name} ({item.size}) x{item.qty}</span>
+                        <span className="font-medium text-gray-900 flex-shrink-0">{formatCOP(item.unitPrice * item.qty)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-t border-gray-100 pt-4 flex justify-between items-center mb-6">
+                    <span className="font-bold text-gray-900">Total</span>
+                    <span className="font-black text-xl text-col-blue">{formatCOP(subtotal)}</span>
+                  </div>
+
+                  <button
+                    onClick={() => goCheckout().catch(() => null)}
+                    disabled={checkingOut}
+                    className="w-full bg-col-blue text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-800 transition-all shadow-lg shadow-blue-900/20 mb-3 flex items-center justify-center gap-2 disabled:opacity-60 disabled:shadow-none"
+                  >
+                    {checkingOut ? "Creando pago..." : "Pagar con Wompi"}
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+
+                  <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+                    <Lock className="w-3.5 h-3.5" /> Pago 100% seguro con Wompi
                   </div>
                 </div>
               </div>
@@ -1004,12 +1163,7 @@ export default function Storefront({ products, categories }: Props) {
         onGoHome={() => navigate("home")}
         onCheckout={() => {
           setCartDrawerOpen(false);
-          if (!userEmail) {
-            navigate("login");
-            setToast("Inicia sesión para continuar al pago");
-            return;
-          }
-          goCheckout().catch(() => null);
+          goToCheckoutForm();
         }}
         checkingOut={checkingOut}
         userEmail={userEmail}
@@ -1054,7 +1208,7 @@ export default function Storefront({ products, categories }: Props) {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
-            <p>&copy; 2026 La Tricolor Store. Página no oficial de demostración Next.js + Supabase + Wompi.</p>
+            <p>&copy; 2026 Cafeteros Shop. Página no oficial de demostración | Engel Romero</p>
           </div>
         </div>
       </footer>

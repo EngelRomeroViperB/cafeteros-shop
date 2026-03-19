@@ -4,10 +4,20 @@ import { buildWompiCheckoutUrl } from "@/lib/wompi";
 import { checkRate } from "@/lib/rate-limit";
 import type { CartItem } from "@/types/store";
 
+type ShippingData = {
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  department: string;
+  notes?: string;
+};
+
 type CheckoutBody = {
   customerEmail: string;
   userId?: string | null;
   items: CartItem[];
+  shipping: ShippingData;
 };
 
 function makeReference() {
@@ -25,6 +35,10 @@ export async function POST(request: Request) {
 
     if (!body.customerEmail || !Array.isArray(body.items) || body.items.length === 0) {
       return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
+    }
+
+    if (!body.shipping?.name || !body.shipping?.phone || !body.shipping?.address || !body.shipping?.city || !body.shipping?.department) {
+      return NextResponse.json({ error: "Datos de envío incompletos" }, { status: 400 });
     }
 
     // Validate email format
@@ -95,6 +109,12 @@ export async function POST(request: Request) {
         status: "pending",
         reference,
         total_cop: amountInCents / 100,
+        shipping_name: body.shipping.name,
+        shipping_phone: body.shipping.phone,
+        shipping_address: body.shipping.address,
+        shipping_city: body.shipping.city,
+        shipping_department: body.shipping.department,
+        shipping_notes: body.shipping.notes ?? "",
       })
       .select("id")
       .single();

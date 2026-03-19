@@ -67,6 +67,12 @@ create table if not exists public.orders (
   wompi_status text,
   wompi_transaction_id text,
   total_cop integer not null default 0 check (total_cop >= 0),
+  shipping_name text not null default '',
+  shipping_phone text not null default '',
+  shipping_address text not null default '',
+  shipping_city text not null default '',
+  shipping_department text not null default '',
+  shipping_notes text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
