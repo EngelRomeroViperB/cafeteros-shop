@@ -98,7 +98,7 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
 
   return (
     <div
-      className={`bg-white rounded-2xl p-5 md:p-6 shadow-lg border hover:shadow-xl transition-all duration-300 relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-col-blue h-full ${
+      className={`bg-white rounded-2xl p-4 md:p-3 shadow-lg border hover:shadow-xl transition-all duration-300 relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-col-blue h-full ${
         product.badge === "Más Vendida" ? "border-col-yellow" : "border-gray-100"
       }`}
       role="button"
@@ -130,7 +130,7 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
               src={thumb}
               alt={product.name}
               fill
-              className={`object-contain drop-shadow-md p-[12%] transition-all duration-500 ${
+              className={`object-contain drop-shadow-md p-[5%] transition-all duration-500 ${
                 hovered && secondImg ? "opacity-0 scale-105" : "opacity-100"
               }`}
               sizes="(max-width: 768px) 100vw, 33vw"
@@ -140,7 +140,7 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
                 src={secondImg}
                 alt={`${product.name} alt`}
                 fill
-                className={`object-contain drop-shadow-md p-[12%] transition-all duration-500 ${
+                className={`object-contain drop-shadow-md p-[5%] transition-all duration-500 ${
                   hovered ? "opacity-100 scale-100" : "opacity-0 scale-95"
                 }`}
                 sizes="(max-width: 768px) 100vw, 33vw"
