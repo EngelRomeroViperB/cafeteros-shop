@@ -23,29 +23,64 @@ type WompiWebhookEvent = {
 function verifyWompiEvent(payload: WompiWebhookEvent): boolean {
   const eventsSecret = process.env.WOMPI_EVENTS_SECRET;
   if (!eventsSecret || !payload.signature?.checksum || !payload.data.transaction) {
+    console.log("[WEBHOOK] Verification failed: missing secret, checksum, or transaction", {
+      hasSecret: !!eventsSecret,
+      hasChecksum: !!payload.signature?.checksum,
+      hasTx: !!payload.data.transaction,
+    });
     return false;
   }
 
   const tx = payload.data.transaction;
-  const base = `${tx.id}${tx.status}${tx.amount_in_cents}${tx.currency}${eventsSecret}`;
+
+  // Build hash string from the properties array Wompi sends
+  // Properties are dot-separated paths like "transaction.id", "transaction.status", etc.
+  const properties = payload.signature.properties ?? [];
+  let concatenated = "";
+
+  if (properties.length > 0) {
+    for (const prop of properties) {
+      const key = prop.replace("transaction.", "");
+      const value = (tx as Record<string, unknown>)[key];
+      concatenated += String(value ?? "");
+    }
+  } else {
+    // Fallback: default Wompi order
+    concatenated = `${tx.id}${tx.status}${tx.amount_in_cents}`;
+  }
+
+  const base = `${concatenated}${eventsSecret}`;
   const hash = crypto.createHash("sha256").update(base).digest("hex");
+
+  console.log("[WEBHOOK] Signature verification:", {
+    properties,
+    concatenated,
+    computed: hash,
+    received: payload.signature.checksum,
+    match: hash === payload.signature.checksum,
+  });
+
   return hash === payload.signature.checksum;
 }
 
 export async function POST(request: Request) {
   const ip = request.headers.get("x-forwarded-for") ?? "unknown";
   if (!checkRate(`webhook:${ip}`, 30, 60_000)) {
+    console.log("[WEBHOOK] Rate limited:", ip);
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
   try {
     const payload = (await request.json()) as WompiWebhookEvent;
+    console.log("[WEBHOOK] Received event:", JSON.stringify(payload, null, 2));
 
     if (payload.event !== "transaction.updated" || !payload.data.transaction) {
+      console.log("[WEBHOOK] Ignoring event:", payload.event);
       return NextResponse.json({ ok: true });
     }
 
     if (!verifyWompiEvent(payload)) {
+      console.error("[WEBHOOK] Invalid signature for reference:", payload.data.transaction?.reference);
       return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
     }
 
@@ -60,8 +95,10 @@ export async function POST(request: Request) {
       PENDING: "pending",
     };
 
+    console.log("[WEBHOOK] Updating order:", { reference: tx.reference, wompiStatus: tx.status, mappedStatus: statusMap[tx.status] });
+
     // Update order status
-    const { data: orderData } = await supabase
+    const { data: orderData, error: orderError } = await supabase
       .from("orders")
       .update({
         wompi_status: tx.status,
@@ -71,12 +108,20 @@ export async function POST(request: Request) {
       .select("id")
       .single();
 
+    if (orderError) {
+      console.error("[WEBHOOK] Order update error:", orderError.message, "reference:", tx.reference);
+    } else {
+      console.log("[WEBHOOK] Order updated:", orderData?.id);
+    }
+
     // Decrement stock when payment is approved
     if (tx.status === "APPROVED" && orderData?.id) {
       const { data: items } = await supabase
         .from("order_items")
         .select("variant_id, quantity")
         .eq("order_id", orderData.id);
+
+      console.log("[WEBHOOK] Decrementing stock for", items?.length ?? 0, "items");
 
       if (items && items.length > 0) {
         for (const item of items) {
