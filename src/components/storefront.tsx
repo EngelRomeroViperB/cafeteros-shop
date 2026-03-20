@@ -491,8 +491,8 @@ export default function Storefront({ products, categories }: Props) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex-shrink-0 flex items-center cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={onActivate(() => navigate("home"))} aria-label="Ir al inicio">
-              <div className="w-10 h-10 rounded-full bg-col-yellow flex items-center justify-center mr-3 border-2 border-col-blue shadow-[0_0_10px_rgba(252,209,22,0.5)] transition-transform hover:scale-110">
-                <span className="font-display font-bold text-col-blue text-lg">CF</span>
+              <div className="w-10 h-10 rounded-full overflow-hidden mr-3 border-2 border-col-blue shadow-[0_0_10px_rgba(252,209,22,0.5)] transition-transform hover:scale-110 bg-white">
+                <Image src="/icono.svg" alt="Cafeteros Shop" width={40} height={40} className="w-full h-full object-cover" />
               </div>
               <span className="font-display font-bold text-xl text-white tracking-wider hidden sm:block">CAFETEROS</span>
             </div>
@@ -771,7 +771,7 @@ export default function Storefront({ products, categories }: Props) {
                       <div id="accordion-shipping" role="region" aria-label="Envíos" className={`overflow-hidden transition-all duration-300 ${openAccordion === "shipping" ? "max-h-60 pb-4" : "max-h-0"}`}>
                         <ul className="text-gray-600 text-sm leading-relaxed space-y-1">
                           <li>• Envío gratis a partir de $200.000 COP</li>
-                          <li>• Entrega en 3-5 días hábiles a nivel nacional</li>
+                          <li>• Entrega en 4-6 días hábiles a nivel nacional</li>
                           <li>• Recomendadicones: </li>
                           <li>• Verifica las medidas de tu talla </li>
                           <li>• Recuerda que nosotros no costeamos las devoluciones</li>
@@ -949,8 +949,8 @@ export default function Storefront({ products, categories }: Props) {
             </div>
             <div className="bg-dark-bg border border-gray-700 rounded-3xl p-8 md:p-12 w-full max-w-md relative z-10 shadow-2xl backdrop-blur-xl">
               <div className="text-center mb-8">
-                <div className="w-16 h-16 rounded-full bg-col-yellow mx-auto flex items-center justify-center mb-4 border-2 border-col-blue shadow-[0_0_15px_rgba(252,209,22,0.4)] cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={onActivate(() => navigate("home"))} aria-label="Ir al inicio">
-                  <span className="font-display font-bold text-col-blue text-2xl">CF</span>
+                <div className="w-16 h-16 rounded-full overflow-hidden bg-white mx-auto mb-4 border-2 border-col-blue shadow-[0_0_15px_rgba(252,209,22,0.4)] cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={onActivate(() => navigate("home"))} aria-label="Ir al inicio">
+                  <Image src="/icono.svg" alt="Cafeteros Shop" width={64} height={64} className="w-full h-full object-cover" />
                 </div>
                 <h2 className="font-display text-2xl font-bold text-white">{userEmail ? "Tu cuenta" : "Inicia Sesión"}</h2>
                 <p className="text-gray-400 mt-2 text-sm">{userEmail ? `Conectado como ${userEmail}` : "Accede para continuar con tu compra"}</p>
@@ -1122,11 +1122,11 @@ export default function Storefront({ products, categories }: Props) {
       {/* Footer */}
       <footer className="bg-gray-950 text-white pt-16 pb-8 border-t-4 border-col-yellow mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-[1.3fr_auto_auto_1.3fr] gap-10 md:gap-x-6 mb-12">
             <div className="col-span-1 md:col-span-1">
               <div className="flex items-center mb-6 cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={onActivate(() => navigate("home"))} aria-label="Ir al inicio">
-                <div className="w-8 h-8 rounded-full bg-col-yellow flex items-center justify-center mr-2">
-                  <span className="font-display font-bold text-col-blue text-xs">CF</span>
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-white/10 border border-white/20 mr-2">
+                  <Image src="/icono.svg" alt="Cafeteros Shop" width={32} height={32} className="w-full h-full object-cover" />
                 </div>
                 <span className="font-display font-bold text-xl tracking-wider">CAFETEROS</span>
               </div>
@@ -1178,8 +1178,8 @@ export default function Storefront({ products, categories }: Props) {
                 { src: "/payments/visa.svg", alt: "Visa" },
                 { src: "/payments/mastercard.svg", alt: "Mastercard" },
                 { src: "/payments/pse.svg", alt: "PSE" },
-                { src: "/payments/nequi.svg", alt: "Nequi" },
-                { src: "/payments/wompi.svg", alt: "Wompi" },
+                { src: "/payments/Nequi.svg", alt: "Nequi" },
+                { src: "/payments/americanexpress.svg", alt: "American Express" },
               ].map((method) => (
                 <div key={method.alt} className="bg-white rounded-md px-2 py-1 border border-gray-700/70">
                   <Image src={method.src} alt={method.alt} width={54} height={18} className="h-4 w-auto object-contain" />

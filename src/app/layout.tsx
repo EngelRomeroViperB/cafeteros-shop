@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s | Cafeteros Shop",
   },
   description:
-    "Compra camisetas de la Selección Colombia, camisetas mundial 2026 y ropa deportiva de Colombia en Cafeteros Shop. Envíos nacionales y pago seguro con Wompi.",
+    "Cafeteros Shop, tienda oficial online de camisetas de la Selección Colombia y ropa deportiva. Envíos a toda Colombia y pago seguro con Wompi.",
   applicationName: "Cafeteros Shop",
   keywords: [
     "cafeteros",
@@ -47,13 +47,18 @@ export const metadata: Metadata = {
     "camisetas seleccion",
   ],
   alternates: {
-    canonical: "/",
+    canonical: "https://cafeteros.shop",
     languages: { "es-CO": "/" },
+  },
+  icons: {
+    icon: "/icono.svg",
+    shortcut: "/icono.svg",
+    apple: "/icono.svg",
   },
   openGraph: {
     type: "website",
     locale: "es_CO",
-    url: "/",
+    url: "https://cafeteros.shop",
     siteName: "Cafeteros Shop",
     title: "Cafeteros Shop | Camisetas de la Selección Colombia 2026",
     description:
@@ -97,6 +102,7 @@ export default function RootLayout({
     <html lang="es">
       <head>
         <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/icono.svg" type="image/svg+xml" />
         <meta name="theme-color" content="#003893" />
       </head>
       <body className={`${inter.variable} ${montserrat.variable} antialiased`}>
