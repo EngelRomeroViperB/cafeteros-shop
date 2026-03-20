@@ -10,18 +10,19 @@ type Props = {
 };
 
 const sizesCaballero = [
-  { label: "S", chest: "88-92", length: "68-70", shoulder: "42-44" },
-  { label: "M", chest: "92-96", length: "70-72", shoulder: "44-46" },
-  { label: "L", chest: "96-100", length: "72-74", shoulder: "46-48" },
-  { label: "XL", chest: "100-104", length: "74-76", shoulder: "48-50" },
-  { label: "XXL", chest: "104-108", length: "76-78", shoulder: "50-52" },
+  { label: "S", chest: "87 - 92", waist: "75 - 80", hip: "86 - 91" },
+  { label: "M", chest: "93 - 100", waist: "81 - 88", hip: "92 - 99" },
+  { label: "L", chest: "101 - 108", waist: "89 - 96", hip: "100 - 107" },
+  { label: "XL", chest: "109 - 118", waist: "97 - 106", hip: "108 - 116" },
+  { label: "XXL", chest: "119 - 130", waist: "107 - 119", hip: "117 - 125" },
 ];
 
 const sizesDama = [
-  { label: "S", chest: "82-86", length: "60-62", shoulder: "36-38" },
-  { label: "M", chest: "86-90", length: "62-64", shoulder: "38-40" },
-  { label: "L", chest: "90-94", length: "64-66", shoulder: "40-42" },
-  { label: "XL", chest: "94-98", length: "66-68", shoulder: "42-44" },
+  { label: "S", chest: "83 - 88", waist: "67 - 72", hip: "92 - 97" },
+  { label: "M", chest: "89 - 94", waist: "73 - 78", hip: "98 - 103" },
+  { label: "L", chest: "95 - 101", waist: "79 - 85", hip: "104 - 110" },
+  { label: "XL", chest: "102 - 109", waist: "86 - 94", hip: "111 - 117" },
+  { label: "XXL", chest: "110 - 118", waist: "95 - 104", hip: "118 - 125" },
 ];
 
 export default function SizeGuide({ open, onClose, gender }: Props) {
@@ -86,15 +87,15 @@ export default function SizeGuide({ open, onClose, gender }: Props) {
             ))}
           </div>
 
-          <p className="text-gray-500 text-sm mb-4">Medidas en centímetros (cm). Mide la prenda extendida sobre una superficie plana.</p>
+          <p className="text-gray-500 text-sm mb-4">Medidas corporales en centímetros (cm).</p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-3 px-2 font-bold text-gray-900">Talla</th>
-                  <th className="text-center py-3 px-2 font-bold text-gray-900">Pecho</th>
-                  <th className="text-center py-3 px-2 font-bold text-gray-900">Largo</th>
-                  <th className="text-center py-3 px-2 font-bold text-gray-900">Hombro</th>
+                  <th className="text-center py-3 px-2 font-bold text-gray-900">{activeTab === "Dama" ? "Busto" : "Pecho"}</th>
+                  <th className="text-center py-3 px-2 font-bold text-gray-900">Cintura</th>
+                  <th className="text-center py-3 px-2 font-bold text-gray-900">Cadera</th>
                 </tr>
               </thead>
               <tbody>
@@ -102,8 +103,8 @@ export default function SizeGuide({ open, onClose, gender }: Props) {
                   <tr key={s.label} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-3 px-2 font-bold text-col-blue">{s.label}</td>
                     <td className="py-3 px-2 text-center text-gray-600">{s.chest}</td>
-                    <td className="py-3 px-2 text-center text-gray-600">{s.length}</td>
-                    <td className="py-3 px-2 text-center text-gray-600">{s.shoulder}</td>
+                    <td className="py-3 px-2 text-center text-gray-600">{s.waist}</td>
+                    <td className="py-3 px-2 text-center text-gray-600">{s.hip}</td>
                   </tr>
                 ))}
               </tbody>
