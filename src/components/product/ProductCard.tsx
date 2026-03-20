@@ -63,7 +63,7 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
               {secondImg && (
                 <Image
                   src={secondImg}
-                  alt={`${product.name} alt`}
+                  alt={`Vista alternativa de ${product.name}`}
                   fill
                   className={`object-cover transition-all duration-500 ${
                     hovered ? "opacity-100 scale-100" : "opacity-0 scale-95"
@@ -143,7 +143,7 @@ export default function ProductCard({ product, onClickProduct, onQuickAdd, varia
             {secondImg && (
               <Image
                 src={secondImg}
-                alt={`${product.name} alt`}
+                alt={`Vista alternativa de ${product.name}`}
                 fill
                 className={`object-cover transition-all duration-500 ${
                   hovered ? "opacity-100 scale-100" : "opacity-0 scale-95"

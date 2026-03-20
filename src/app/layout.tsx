@@ -16,11 +16,11 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://cafeteros.shop"),
   title: {
-    default: "Cafeteros Shop | Camisetas de Colombia – Selección Colombia 2026",
+    default: "Cafeteros Shop | Camisetas de la Selección Colombia y Ropa Deportiva",
     template: "%s | Cafeteros Shop",
   },
   description:
-    "Tienda oficial Cafeteros: compra camisetas de la Selección Colombia 2026, camisetas del mundial, conjuntos deportivos y más. Envíos a toda Colombia. Pago seguro con Wompi.",
+    "Compra camisetas de la Selección Colombia, camisetas mundial 2026 y ropa deportiva de Colombia en Cafeteros Shop. Envíos nacionales y pago seguro con Wompi.",
   applicationName: "Cafeteros Shop",
   keywords: [
     "cafeteros",
@@ -33,6 +33,9 @@ export const metadata: Metadata = {
     "colombia",
     "selección colombia",
     "camiseta tricolor",
+    "orgullo cafetero",
+    "camisetas cafeteras",
+    "camisetas de la selección colombia",
     "tienda camisetas colombia",
     "comprar camiseta colombia",
     "camiseta futbol colombia",

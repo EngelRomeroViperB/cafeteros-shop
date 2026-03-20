@@ -127,6 +127,8 @@ export default function Storefront({ products, categories }: Props) {
   const [shippingCity, setShippingCity] = useState("");
   const [shippingDepartment, setShippingDepartment] = useState("");
   const [shippingNotes, setShippingNotes] = useState("");
+  const [savingShippingProfile, setSavingShippingProfile] = useState(false);
+  const [legalModal, setLegalModal] = useState<"shipping" | "terms" | null>(null);
   // Account orders
   type AccountOrderItem = { id: string; title: string; selected_size: string; selected_gender: string; quantity: number; unit_price_cop: number; line_total_cop: number };
   type AccountOrder = { id: string; reference: string; status: string; wompi_status: string; total_cop: number; created_at: string; items: AccountOrderItem[] };
@@ -147,15 +149,141 @@ export default function Storefront({ products, categories }: Props) {
     () => activeProduct?.variants.find((variant) => variant.id === selectedVariantId) ?? activeProduct?.variants[0] ?? null,
     [activeProduct, selectedVariantId],
   );
+  const productListSchema = useMemo(() => {
+    const itemListElement = products.slice(0, 24).map((product, idx) => {
+      const activeVariants = product.variants.filter((v) => v.is_active);
+      const prices = activeVariants.map((v) => v.price_cop).filter((price) => Number.isFinite(price));
+      const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+      const hasStock = activeVariants.some((v) => v.stock > 0);
+      const image = product.media?.find((m) => m.media_type === "image" && m.is_primary)?.url
+        ?? product.media?.find((m) => m.media_type === "image")?.url
+        ?? product.image_url
+        ?? "https://cafeteros.shop/og-image.png";
+
+      return {
+        "@type": "ListItem",
+        position: idx + 1,
+        item: {
+          "@type": "Product",
+          name: product.name,
+          image,
+          description: product.description || `Camiseta de la Selección Colombia: ${product.name}`,
+          sku: product.id,
+          brand: {
+            "@type": "Brand",
+            name: "Cafeteros Shop",
+          },
+          offers: {
+            "@type": "Offer",
+            url: "https://cafeteros.shop",
+            priceCurrency: "COP",
+            price: minPrice,
+            availability: hasStock
+              ? "https://schema.org/InStock"
+              : "https://schema.org/OutOfStock",
+          },
+        },
+      };
+    });
+
+    return {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: "Camisetas de la Selección Colombia",
+      itemListElement,
+    };
+  }, [products]);
+
+  const applyShippingProfile = (profile?: {
+    name?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    department?: string;
+    notes?: string;
+  }) => {
+    if (!profile) return;
+    setShippingName(profile.name ?? "");
+    setShippingPhone(profile.phone ?? "");
+    setShippingAddress(profile.address ?? "");
+    setShippingCity(profile.city ?? "");
+    setShippingDepartment(profile.department ?? "");
+    setShippingNotes(profile.notes ?? "");
+  };
+
+  const loadShippingProfile = async () => {
+    if (!supabase) return;
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) return;
+    const profile = (data.user.user_metadata as { shipping_profile?: {
+      name?: string;
+      phone?: string;
+      address?: string;
+      city?: string;
+      department?: string;
+      notes?: string;
+    } } | undefined)?.shipping_profile;
+    applyShippingProfile(profile);
+  };
+
+  const saveShippingProfile = async () => {
+    if (!supabase || !userEmail) {
+      setToast("Inicia sesión para guardar tus datos");
+      return;
+    }
+    const profile = {
+      name: shippingName.trim(),
+      phone: shippingPhone.trim(),
+      address: shippingAddress.trim(),
+      city: shippingCity.trim(),
+      department: shippingDepartment.trim(),
+      notes: shippingNotes.trim(),
+    };
+    setSavingShippingProfile(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { shipping_profile: profile },
+      });
+      if (error) throw error;
+      setToast("Datos de envío guardados en tu cuenta");
+    } catch {
+      setToast("No fue posible guardar tus datos de envío");
+    } finally {
+      setSavingShippingProfile(false);
+    }
+  };
+
   useEffect(() => {
     if (supabase) {
       supabase.auth.getSession().then(({ data }) => {
-        setUserEmail(data.session?.user.email ?? null);
+        const sessionUser = data.session?.user;
+        setUserEmail(sessionUser?.email ?? null);
+        const profile = (sessionUser?.user_metadata as { shipping_profile?: {
+          name?: string;
+          phone?: string;
+          address?: string;
+          city?: string;
+          department?: string;
+          notes?: string;
+        } } | undefined)?.shipping_profile;
+        applyShippingProfile(profile);
       });
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((_event, session) => {
-        setUserEmail(session?.user.email ?? null);
+        const sessionUser = session?.user;
+        setUserEmail(sessionUser?.email ?? null);
+        const profile = (sessionUser?.user_metadata as { shipping_profile?: {
+          name?: string;
+          phone?: string;
+          address?: string;
+          city?: string;
+          department?: string;
+          notes?: string;
+        } } | undefined)?.shipping_profile;
+        if (profile) {
+          applyShippingProfile(profile);
+        }
       });
       return () => {
         subscription.unsubscribe();
@@ -250,6 +378,7 @@ export default function Storefront({ products, categories }: Props) {
   const goToAccount = () => {
     if (!userEmail) { navigate("login"); return; }
     navigate("account");
+    loadShippingProfile().catch(() => null);
     fetchAccountOrders();
   };
   const addToCart = (product: Product, variantId?: string, qty = 1) => {
@@ -281,9 +410,10 @@ export default function Storefront({ products, categories }: Props) {
     setUserEmail(null);
     setToast("Sesión cerrada");
   };
-  const goToCheckoutForm = () => {
+  const goToCheckoutForm = async () => {
     if (cartItems.length === 0) { setToast("Tu carrito está vacío"); return; }
     if (!userEmail) { navigate("login"); setToast("Inicia sesión para continuar al pago"); return; }
+    await loadShippingProfile();
     navigate("checkout");
   };
   const goCheckout = async () => {
@@ -295,6 +425,19 @@ export default function Storefront({ products, categories }: Props) {
     try {
       setCheckingOut(true);
       const userId = supabase ? (await supabase.auth.getSession()).data.session?.user.id ?? null : null;
+      const shippingPayload = {
+        name: shippingName.trim(),
+        phone: shippingPhone.trim(),
+        address: shippingAddress.trim(),
+        city: shippingCity.trim(),
+        department: shippingDepartment.trim(),
+        notes: shippingNotes.trim(),
+      };
+
+      if (supabase && userEmail) {
+        await supabase.auth.updateUser({ data: { shipping_profile: shippingPayload } });
+      }
+
       const res = await fetch("/api/checkout/wompi", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -302,14 +445,7 @@ export default function Storefront({ products, categories }: Props) {
           customerEmail: userEmail,
           userId,
           items: cartItems,
-          shipping: {
-            name: shippingName.trim(),
-            phone: shippingPhone.trim(),
-            address: shippingAddress.trim(),
-            city: shippingCity.trim(),
-            department: shippingDepartment.trim(),
-            notes: shippingNotes.trim(),
-          },
+          shipping: shippingPayload,
         }),
       });
       if (!res.ok) {
@@ -318,8 +454,6 @@ export default function Storefront({ products, categories }: Props) {
       }
       const payload = (await res.json()) as { checkoutUrl: string };
       clearCart();
-      setShippingName(""); setShippingPhone(""); setShippingAddress("");
-      setShippingCity(""); setShippingDepartment(""); setShippingNotes("");
       window.location.href = payload.checkoutUrl;
     } catch (error) {
       setToast(error instanceof Error ? error.message : "Error inesperado");
@@ -330,7 +464,10 @@ export default function Storefront({ products, categories }: Props) {
 
   return (
     <div className="font-sans antialiased text-gray-800 bg-gray-50 selection:bg-col-yellow selection:text-col-blue flex flex-col min-h-screen">
-
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productListSchema) }}
+      />
       {/* Toast */}
       <div
         id="toast"
@@ -414,8 +551,8 @@ export default function Storefront({ products, categories }: Props) {
                       <span className="text-col-yellow text-xs font-semibold uppercase tracking-wider">Edición Oficial 2026</span>
                     </div>
                     <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-black text-white leading-tight mb-4">
-                      NUESTRA PIEL,<br />
-                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-col-yellow via-yellow-300 to-col-yellow">NUESTRO ORGULLO.</span>
+                      CAMISETAS DE LA<br />
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-col-yellow via-yellow-300 to-col-yellow">SELECCIÓN COLOMBIA</span>
                     </h1>
                     <p className="text-sm md:text-base text-gray-300 mb-6 max-w-lg mx-auto lg:mx-0">
                       Presentamos la nueva armadura de la Selección Colombia. Diseñada con tecnología de punta y llevando en cada hilo el corazón de 50 millones de colombianos.
@@ -628,7 +765,7 @@ export default function Storefront({ products, categories }: Props) {
                     </div>
                     <div>
                       <button onClick={() => setOpenAccordion(openAccordion === "shipping" ? null : "shipping")} className="flex justify-between items-center w-full py-4 text-gray-900 hover:text-col-blue font-bold" aria-expanded={openAccordion === "shipping"} aria-controls="accordion-shipping">
-                        <span>Envíos</span>
+                        <span>Envíos y devoluciones</span>
                         <ChevronRight className={`w-5 h-5 transition-transform duration-200 ${openAccordion === "shipping" ? "rotate-90" : "rotate-0"}`} />
                       </button>
                       <div id="accordion-shipping" role="region" aria-label="Envíos" className={`overflow-hidden transition-all duration-300 ${openAccordion === "shipping" ? "max-h-60 pb-4" : "max-h-0"}`}>
@@ -638,6 +775,7 @@ export default function Storefront({ products, categories }: Props) {
                           <li>• Recomendadicones: </li>
                           <li>• Verifica las medidas de tu talla </li>
                           <li>• Recuerda que nosotros no costeamos las devoluciones</li>
+                          <li>• Revisa nuestra política de devoluciones</li>
                         </ul>
                       </div>
                     </div>
@@ -680,7 +818,7 @@ export default function Storefront({ products, categories }: Props) {
                         <span className="font-black text-2xl text-col-blue">{formatCOP(subtotal)}</span>
                       </div>
                     </div>
-                    <button onClick={goToCheckoutForm} disabled={cartItems.length === 0} className="w-full bg-col-blue text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-800 transition-all shadow-lg shadow-blue-900/20 mb-4 flex items-center justify-center gap-2 disabled:opacity-60 disabled:shadow-none">
+                    <button onClick={() => { goToCheckoutForm().catch(() => null); }} disabled={cartItems.length === 0} className="w-full bg-col-blue text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-800 transition-all shadow-lg shadow-blue-900/20 mb-4 flex items-center justify-center gap-2 disabled:opacity-60 disabled:shadow-none">
                       {userEmail ? "Proceder al Pago" : "Inicia sesión para pagar"} <ArrowRight className="w-5 h-5" />
                     </button>
                     <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
@@ -772,8 +910,8 @@ export default function Storefront({ products, categories }: Props) {
                 <span className="text-gray-900 font-medium">Colección</span>
               </nav>
               <div className="text-center max-w-2xl mx-auto mb-8 md:mb-14">
-                <h1 className="font-display text-2xl md:text-4xl font-black text-dark-bg mb-3">Nuestra Colección</h1>
-                <p className="text-gray-500">Equípate con lo mejor para alentar a la tricolor.</p>
+                <h1 className="font-display text-2xl md:text-4xl font-black text-dark-bg mb-3">Colección de Camisetas de la Selección Colombia</h1>
+                <p className="text-gray-500">Equípate con lo mejor para vivir el orgullo cafetero.</p>
               </div>
               {(() => {
                 let filtered = filterCategory ? products.filter((p) => p.category_id === filterCategory) : [...products];
@@ -867,6 +1005,24 @@ export default function Storefront({ products, categories }: Props) {
                 </h2>
                 <p className="text-gray-400 mt-2 text-sm">{userEmail}</p>
               </div>
+
+              <div className="bg-gray-800/80 backdrop-blur rounded-xl border border-gray-700 p-4 mb-6 space-y-3">
+                <h3 className="text-sm font-bold text-gray-200">Datos de envío guardados</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input type="text" placeholder="Nombre completo" value={shippingName} onChange={(e) => setShippingName(e.target.value)} className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-col-yellow" />
+                  <input type="tel" placeholder="Teléfono" value={shippingPhone} onChange={(e) => setShippingPhone(e.target.value)} className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-col-yellow" />
+                  <input type="text" placeholder="Dirección" value={shippingAddress} onChange={(e) => setShippingAddress(e.target.value)} className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-col-yellow sm:col-span-2" />
+                  <input type="text" placeholder="Ciudad" value={shippingCity} onChange={(e) => setShippingCity(e.target.value)} className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-col-yellow" />
+                  <input type="text" placeholder="Departamento" value={shippingDepartment} onChange={(e) => setShippingDepartment(e.target.value)} className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-col-yellow" />
+                </div>
+                <textarea placeholder="Notas" value={shippingNotes} onChange={(e) => setShippingNotes(e.target.value)} rows={2} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-col-yellow resize-none" />
+                <div className="flex justify-end">
+                  <button onClick={() => saveShippingProfile().catch(() => null)} disabled={savingShippingProfile} className="bg-col-yellow text-col-blue px-4 py-2 rounded-lg text-sm font-bold hover:bg-yellow-300 transition-colors disabled:opacity-60">
+                    {savingShippingProfile ? "Guardando..." : "Guardar datos"}
+                  </button>
+                </div>
+              </div>
+
               {accountLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-col-yellow" />
@@ -957,7 +1113,7 @@ export default function Storefront({ products, categories }: Props) {
         open={cartDrawerOpen}
         onClose={() => setCartDrawerOpen(false)}
         onGoHome={() => navigate("home")}
-        onCheckout={() => { setCartDrawerOpen(false); goToCheckoutForm(); }}
+        onCheckout={() => { setCartDrawerOpen(false); goToCheckoutForm().catch(() => null); }}
         checkingOut={checkingOut}
         userEmail={userEmail}
         products={products}
@@ -984,6 +1140,29 @@ export default function Storefront({ products, categories }: Props) {
               </ul>
             </div>
             <div>
+              <h4 className="font-bold text-lg mb-4 text-gray-200">Información Legal</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setLegalModal("shipping")}
+                    className="hover:text-col-yellow transition-colors"
+                  >
+                    Política de Envíos y Devoluciones
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setLegalModal("terms")}
+                    className="hover:text-col-yellow transition-colors"
+                  >
+                    Términos y Condiciones
+                  </button>
+                </li>
+              </ul>
+            </div>
+            <div>
               <h4 className="font-bold text-lg mb-4 text-gray-200">Únete a la pasión</h4>
               <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); setToast('¡Suscrito correctamente!'); }}>
                 <input type="email" placeholder="Tu correo electrónico" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-col-yellow text-white" />
@@ -991,11 +1170,119 @@ export default function Storefront({ products, categories }: Props) {
               </form>
             </div>
           </div>
-          <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
-            <p>&copy; 2026 Cafeteros Shop. Página no oficial de demostración </p>
+          <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+            <p>&copy; 2026 Cafeteros Shop</p>
+            <div className="flex items-center gap-2 flex-wrap justify-center md:justify-end" aria-label="Métodos de pago aceptados">
+              <span className="text-xs text-gray-400 mr-1">Pagos:</span>
+              {[
+                { src: "/payments/visa.svg", alt: "Visa" },
+                { src: "/payments/mastercard.svg", alt: "Mastercard" },
+                { src: "/payments/pse.svg", alt: "PSE" },
+                { src: "/payments/nequi.svg", alt: "Nequi" },
+                { src: "/payments/wompi.svg", alt: "Wompi" },
+              ].map((method) => (
+                <div key={method.alt} className="bg-white rounded-md px-2 py-1 border border-gray-700/70">
+                  <Image src={method.src} alt={method.alt} width={54} height={18} className="h-4 w-auto object-contain" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </footer>
+
+      {legalModal && (
+        <div
+          className="fixed inset-0 z-[95] bg-black/60 backdrop-blur-sm p-4 flex items-center justify-center"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setLegalModal(null);
+          }}
+        >
+          <div className="bg-white w-full max-w-3xl max-h-[85vh] rounded-2xl overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <h3 className="font-display text-xl font-bold text-dark-bg">
+                {legalModal === "shipping" ? "Política de Envíos y Devoluciones" : "Términos y Condiciones – Cafeteros Shop"}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setLegalModal(null)}
+                className="text-gray-400 hover:text-gray-700 transition-colors"
+                aria-label="Cerrar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[calc(85vh-73px)] text-sm text-gray-700 leading-relaxed">
+              {legalModal === "shipping" ? (
+                <div className="space-y-5">
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-2">1. Tiempos de Envío</h4>
+                    <p>Los pedidos se procesan y despachan en un plazo de 4 a 6 días hábiles.</p>
+                    <p>Los tiempos de entrega finales dependen de la transportadora y la ciudad de destino.</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-2">2. Condiciones para Cambios y Devoluciones</h4>
+                    <p>Para garantizar la calidad de nuestras prendas, solo aceptamos cambios o devoluciones exclusivamente por motivos de talla.</p>
+                    <p className="mt-2">Puedes solicitar un cambio únicamente en los siguientes casos:</p>
+                    <ul className="list-disc pl-6 mt-2 space-y-1">
+                      <li>Error de despacho: Recibiste una talla diferente a la que aparece en tu confirmación de pedido.</li>
+                      <li>Error de elección: Te equivocaste al seleccionar la talla durante tu compra y necesitas una distinta.</li>
+                    </ul>
+                    <p className="mt-2">No realizamos devoluciones de dinero ni aceptamos cambios por cambio de opinión, daños por mal uso o prendas que ya hayan sido utilizadas.</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-2">3. Costos de Envío</h4>
+                    <p>El cliente asume el 100% de los costos de flete asociados al proceso de cambio. Esto incluye el envío de la prenda devuelta hacia nuestras instalaciones y el envío de la nueva camiseta de reemplazo hacia el domicilio del cliente.</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-2">4. Requisitos de la Prenda</h4>
+                    <p>Para aprobar el cambio, la camiseta debe cumplir con estas condiciones:</p>
+                    <ul className="list-disc pl-6 mt-2 space-y-1">
+                      <li>La solicitud debe hacerse dentro de los primeros 5 días calendario tras recibir el paquete.</li>
+                      <li>La prenda debe estar en perfecto estado: nueva, sin uso, sin lavar, sin olores y con sus etiquetas y empaque originales intactos.</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-2">5. Proceso de Cambio</h4>
+                    <p>Para gestionar un cambio de talla, escríbenos a WhatsApp 3241947654 o al correo cafeteros101@gmail.com con tu número de pedido y la nueva talla requerida. Una vez confirmemos disponibilidad, te compartiremos los datos de envío.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-2">1. Naturaleza y Calidad de los Productos</h4>
+                    <p>En Cafeteros Shop nos especializamos en ofrecer la mejor calidad disponible en el mercado para los aficionados. Declaramos de manera transparente que nuestros productos son versiones importadas de calidad premium (réplicas de grado superior / Top Quality) y no son fabricados, patrocinados ni distribuidos por la marca deportiva oficial ni por la Federación Colombiana de Fútbol. Garantizamos que los materiales, tecnologías y acabados de nuestras camisetas cumplen con los más altos estándares de fidelidad y rendimiento.</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-2">2. Propiedad Intelectual</h4>
+                    <p>Este e-commerce opera como una tienda independiente. Los logotipos, escudos y diseños presentes en los artículos se utilizan exclusivamente con fines descriptivos y representativos de la pasión por el fútbol, sin intención de suplantar a las marcas oficiales registradas.</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-2">3. Precios y Disponibilidad</h4>
+                    <p>Todos los precios están expresados en pesos colombianos (COP). Nos reservamos el derecho de modificar los precios, aplicar descuentos o descontinuar productos en cualquier momento sin previo aviso, dependiendo de la disponibilidad de nuestro inventario.</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-2">4. Envíos y Devoluciones</h4>
+                    <p>Al procesar una compra, el usuario acepta nuestra Política de Envíos y Devoluciones, entendiendo y aceptando que los cambios se realizan de forma exclusiva por errores en la elección de la talla, y que los costos de envío o fletes asociados a dicho cambio son asumidos integralmente por el comprador.</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-2">5. Aceptación de los Términos</h4>
+                    <p>La navegación por este sitio web y la adquisición de cualquier producto implican la lectura, el entendimiento y la aceptación total de estos términos, así como de la naturaleza específica de los artículos comercializados.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* WhatsApp floating button */}
       <a

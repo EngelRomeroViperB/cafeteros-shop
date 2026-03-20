@@ -180,7 +180,7 @@ describe("POST /api/checkout/wompi", () => {
     const body = await res.json();
     expect(body.checkoutUrl).toBeDefined();
     expect(body.orderId).toBe("order-1");
-    expect(body.reference).toMatch(/^tricolor-/);
+    expect(body.reference).toMatch(/^cafeteros-/);
   });
 
   // ─── Missing server config ───

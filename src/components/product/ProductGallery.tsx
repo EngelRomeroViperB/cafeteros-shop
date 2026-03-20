@@ -121,7 +121,7 @@ export default function ProductGallery({ product }: Props) {
                 ) : (
                   <Image
                     src={m.url}
-                    alt={`Miniatura ${idx + 1}`}
+                    alt={`Miniatura ${idx + 1} de ${product.name}`}
                     fill
                     className="object-cover"
                     sizes="120px"
@@ -159,7 +159,7 @@ export default function ProductGallery({ product }: Props) {
                   ) : (
                     <Image
                       src={m.url}
-                      alt={`${product.name} ${idx + 1}`}
+                      alt={`${product.name} - vista ${idx + 1}`}
                       fill
                       className="object-cover"
                       sizes="100vw"

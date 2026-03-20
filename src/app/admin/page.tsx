@@ -1015,6 +1015,7 @@ export default function AdminPage() {
                 { value: "shipped", label: "Enviados" },
                 { value: "delivered", label: "Entregados" },
                 { value: "canceled", label: "Cancelados" },
+                { value: "returned", label: "Devueltos" },
               ].map((f) => (
                 <button
                   key={f.value}
@@ -1048,6 +1049,7 @@ export default function AdminPage() {
                       shipped: "bg-blue-400/20 text-blue-400",
                       delivered: "bg-emerald-400/20 text-emerald-400",
                       canceled: "bg-red-400/20 text-red-400",
+                      returned: "bg-violet-400/20 text-violet-400",
                       declined: "bg-red-400/20 text-red-400",
                       error: "bg-red-400/20 text-red-400",
                     };
@@ -1057,6 +1059,7 @@ export default function AdminPage() {
                       shipped: "Enviado",
                       delivered: "Entregado",
                       canceled: "Cancelado",
+                      returned: "Devuelto",
                       declined: "Rechazado",
                       error: "Error",
                     };
@@ -1185,7 +1188,7 @@ export default function AdminPage() {
                             <div>
                               <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Cambiar estado</h4>
                               <div className="flex gap-2 flex-wrap">
-                                {["pending", "paid", "shipped", "delivered", "canceled"].map((s) => (
+                                {["pending", "paid", "shipped", "delivered", "canceled", "returned"].map((s) => (
                                   <button
                                     key={s}
                                     disabled={order.status === s}

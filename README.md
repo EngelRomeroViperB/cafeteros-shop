@@ -1,4 +1,4 @@
-# La Tricolor Store
+# Cafeteros Shop
 
 Tienda e-commerce para camisetas de la Selección Colombia, construida con `Next.js + Supabase + Wompi (sandbox)` y lista para desplegar en Vercel.
 

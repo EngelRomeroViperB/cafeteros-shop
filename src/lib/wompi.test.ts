@@ -56,14 +56,14 @@ describe("buildWompiCheckoutUrl", () => {
     const url = buildWompiCheckoutUrl({
       amountInCents: 15000000,
       customerEmail: "test@example.com",
-      reference: "tricolor-123",
+      reference: "cafeteros-123",
       redirectUrl: "https://example.com/checkout/result",
     });
 
     expect(url).toContain("public-key=pub_test_key");
     expect(url).toContain("currency=COP");
     expect(url).toContain("amount-in-cents=15000000");
-    expect(url).toContain("reference=tricolor-123");
+    expect(url).toContain("reference=cafeteros-123");
     expect(url).toContain("redirect-url=");
     expect(url).toContain("signature%3Aintegrity=");
     expect(url).toContain("customer-data%3Aemail=test%40example.com");
