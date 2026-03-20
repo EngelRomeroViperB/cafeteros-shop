@@ -70,6 +70,8 @@ export default function AdminPage() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [orderFilter, setOrderFilter] = useState<string>("all");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [editingSizeItem, setEditingSizeItem] = useState<string | null>(null);
+  const [sizeDraft, setSizeDraft] = useState({ new_size: "", new_gender: "" });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ProductDraft>({ ...EMPTY_DRAFT });
 
@@ -142,6 +144,30 @@ export default function AdminPage() {
         throw new Error(json.error || "Error al actualizar");
       }
       flash("Estado actualizado");
+      await fetchOrders();
+    } catch (err) {
+      flash(`Error: ${err instanceof Error ? err.message : "desconocido"}`);
+    }
+  };
+
+  const updateItemSize = async (orderId: string, itemId: string, newSize: string, newGender: string) => {
+    try {
+      const payload: Record<string, string> = {};
+      if (newSize) payload.new_size = newSize;
+      if (newGender) payload.new_gender = newGender;
+      if (!payload.new_size && !payload.new_gender) { flash("Selecciona una nueva talla o género"); return; }
+      const res = await fetch(`/api/admin/orders/${orderId}/items/${itemId}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || "Error al cambiar talla");
+      }
+      flash("Talla actualizada correctamente");
+      setEditingSizeItem(null);
+      setSizeDraft({ new_size: "", new_gender: "" });
       await fetchOrders();
     } catch (err) {
       flash(`Error: ${err instanceof Error ? err.message : "desconocido"}`);
@@ -1087,15 +1113,71 @@ export default function AdminPage() {
                             <div>
                               <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Items</h4>
                               <div className="bg-gray-900 rounded-lg divide-y divide-gray-800">
-                                {order.items.map((item) => (
-                                  <div key={item.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                                    <div>
-                                      <span className="text-white">{item.title}</span>
-                                      <span className="text-gray-500 ml-2">({item.selected_size}, {item.selected_gender}) x{item.quantity}</span>
+                                {order.items.map((item) => {
+                                  const isEditingSize = editingSizeItem === item.id;
+                                  return (
+                                    <div key={item.id} className="px-3 py-2 text-sm">
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <span className="text-white">{item.title}</span>
+                                          <span className="text-gray-500 ml-2">({item.selected_size}, {item.selected_gender}) x{item.quantity}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-white font-medium">{formatCOP(item.line_total_cop)}</span>
+                                          <button
+                                            onClick={() => {
+                                              if (isEditingSize) {
+                                                setEditingSizeItem(null);
+                                                setSizeDraft({ new_size: "", new_gender: "" });
+                                              } else {
+                                                setEditingSizeItem(item.id);
+                                                setSizeDraft({ new_size: item.selected_size, new_gender: item.selected_gender });
+                                              }
+                                            }}
+                                            className="text-yellow-400 hover:text-yellow-300 transition-colors p-1 rounded"
+                                            title="Cambiar talla"
+                                          >
+                                            <Pencil className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                      {isEditingSize && (
+                                        <div className="mt-2 flex items-center gap-2 flex-wrap bg-gray-800 rounded-lg p-2">
+                                          <span className="text-xs text-gray-400 font-medium">Cambiar talla:</span>
+                                          <select
+                                            value={sizeDraft.new_size}
+                                            onChange={(e) => setSizeDraft((d) => ({ ...d, new_size: e.target.value }))}
+                                            className="bg-gray-700 text-white text-xs rounded px-2 py-1 border border-gray-600 focus:border-yellow-400 focus:outline-none"
+                                          >
+                                            {["XS", "S", "M", "L", "XL", "XXL"].map((s) => (
+                                              <option key={s} value={s}>{s}</option>
+                                            ))}
+                                          </select>
+                                          <select
+                                            value={sizeDraft.new_gender}
+                                            onChange={(e) => setSizeDraft((d) => ({ ...d, new_gender: e.target.value }))}
+                                            className="bg-gray-700 text-white text-xs rounded px-2 py-1 border border-gray-600 focus:border-yellow-400 focus:outline-none"
+                                          >
+                                            <option value="Caballero">Caballero</option>
+                                            <option value="Dama">Dama</option>
+                                          </select>
+                                          <button
+                                            onClick={() => updateItemSize(order.id, item.id, sizeDraft.new_size, sizeDraft.new_gender)}
+                                            className="bg-yellow-400 text-gray-900 text-xs font-bold px-3 py-1 rounded hover:bg-yellow-300 transition-colors flex items-center gap-1"
+                                          >
+                                            <Save className="w-3 h-3" /> Guardar
+                                          </button>
+                                          <button
+                                            onClick={() => { setEditingSizeItem(null); setSizeDraft({ new_size: "", new_gender: "" }); }}
+                                            className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded transition-colors"
+                                          >
+                                            Cancelar
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
-                                    <span className="text-white font-medium">{formatCOP(item.line_total_cop)}</span>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             </div>
 

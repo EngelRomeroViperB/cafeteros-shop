@@ -628,14 +628,16 @@ export default function Storefront({ products, categories }: Props) {
                     </div>
                     <div>
                       <button onClick={() => setOpenAccordion(openAccordion === "shipping" ? null : "shipping")} className="flex justify-between items-center w-full py-4 text-gray-900 hover:text-col-blue font-bold" aria-expanded={openAccordion === "shipping"} aria-controls="accordion-shipping">
-                        <span>Envíos y devoluciones</span>
+                        <span>Envíos</span>
                         <ChevronRight className={`w-5 h-5 transition-transform duration-200 ${openAccordion === "shipping" ? "rotate-90" : "rotate-0"}`} />
                       </button>
-                      <div id="accordion-shipping" role="region" aria-label="Envíos y devoluciones" className={`overflow-hidden transition-all duration-300 ${openAccordion === "shipping" ? "max-h-60 pb-4" : "max-h-0"}`}>
+                      <div id="accordion-shipping" role="region" aria-label="Envíos" className={`overflow-hidden transition-all duration-300 ${openAccordion === "shipping" ? "max-h-60 pb-4" : "max-h-0"}`}>
                         <ul className="text-gray-600 text-sm leading-relaxed space-y-1">
                           <li>• Envío gratis a partir de $200.000 COP</li>
                           <li>• Entrega en 3-5 días hábiles a nivel nacional</li>
-                          <li></li>
+                          <li>• Recomendadicones: </li>
+                          <li>• Verifica las medidas de tu talla </li>
+                          <li>• Recuerda que nosotros no costeamos las devoluciones</li>
                         </ul>
                       </div>
                     </div>
@@ -912,7 +914,7 @@ export default function Storefront({ products, categories }: Props) {
                         {isExpanded && (
                           <div className="border-t border-gray-700 p-4 space-y-4">
                             <div className="bg-gray-900/60 rounded-lg p-3 border border-gray-600">
-                              <p className="text-xs text-gray-400 mb-1">Referencia de pedido (guárdala para devoluciones)</p>
+                              <p className="text-xs text-gray-400 mb-1">Referencia de pedido (guárdala para algún reclamo)</p>
                               <p className="text-col-yellow font-mono font-bold text-sm select-all break-all">{order.reference}</p>
                             </div>
                             <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-400">
@@ -979,13 +981,6 @@ export default function Storefront({ products, categories }: Props) {
               <ul className="space-y-2 text-sm text-gray-400">
                 <li><button onClick={() => navigate("home")} className="hover:text-col-yellow transition-colors">Camisetas</button></li>
                 <li><button onClick={() => navigate("collections")} className="hover:text-col-yellow transition-colors">Colección</button></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold text-lg mb-4 text-gray-200">Soporte</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><button onClick={() => setToast("Próximamente")} className="hover:text-col-yellow transition-colors">Guía de Tallas</button></li>
-                <li><button onClick={() => setToast("Próximamente")} className="hover:text-col-yellow transition-colors">Envíos y Devoluciones</button></li>
               </ul>
             </div>
             <div>
