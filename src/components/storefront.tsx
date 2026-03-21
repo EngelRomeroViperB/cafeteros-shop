@@ -492,7 +492,7 @@ export default function Storefront({ products, categories }: Props) {
           <div className="flex justify-between items-center h-20">
             <div className="flex-shrink-0 flex items-center cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={onActivate(() => navigate("home"))} aria-label="Ir al inicio">
               <div className="w-10 h-10 rounded-full overflow-hidden mr-3 border-2 border-col-blue shadow-[0_0_10px_rgba(252,209,22,0.5)] transition-transform hover:scale-110 bg-white">
-                <Image src="/icono.svg" alt="Cafeteros Shop" width={40} height={40} className="w-full h-full object-cover" />
+                <Image src="/iconocafeteros.svg" alt="Cafeteros Shop" width={40} height={40} className="w-full h-full object-cover" />
               </div>
               <span className="font-display font-bold text-xl text-white tracking-wider hidden sm:block">CAFETEROS</span>
             </div>
@@ -950,7 +950,7 @@ export default function Storefront({ products, categories }: Props) {
             <div className="bg-dark-bg border border-gray-700 rounded-3xl p-8 md:p-12 w-full max-w-md relative z-10 shadow-2xl backdrop-blur-xl">
               <div className="text-center mb-8">
                 <div className="w-16 h-16 rounded-full overflow-hidden bg-white mx-auto mb-4 border-2 border-col-blue shadow-[0_0_15px_rgba(252,209,22,0.4)] cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={onActivate(() => navigate("home"))} aria-label="Ir al inicio">
-                  <Image src="/icono.svg" alt="Cafeteros Shop" width={64} height={64} className="w-full h-full object-cover" />
+                  <Image src="/iconocafeteros.svg" alt="Cafeteros Shop" width={64} height={64} className="w-full h-full object-cover" />
                 </div>
                 <h2 className="font-display text-2xl font-bold text-white">{userEmail ? "Tu cuenta" : "Inicia Sesión"}</h2>
                 <p className="text-gray-400 mt-2 text-sm">{userEmail ? `Conectado como ${userEmail}` : "Accede para continuar con tu compra"}</p>
@@ -1126,7 +1126,7 @@ export default function Storefront({ products, categories }: Props) {
             <div className="col-span-1 md:col-span-1">
               <div className="flex items-center mb-6 cursor-pointer" role="button" tabIndex={0} onClick={() => navigate("home")} onKeyDown={onActivate(() => navigate("home"))} aria-label="Ir al inicio">
                 <div className="w-8 h-8 rounded-full overflow-hidden bg-white/10 border border-white/20 mr-2">
-                  <Image src="/icono.svg" alt="Cafeteros Shop" width={32} height={32} className="w-full h-full object-cover" />
+                  <Image src="/iconocafeteros.svg" alt="Cafeteros Shop" width={32} height={32} className="w-full h-full object-cover" />
                 </div>
                 <span className="font-display font-bold text-xl tracking-wider">CAFETEROS</span>
               </div>

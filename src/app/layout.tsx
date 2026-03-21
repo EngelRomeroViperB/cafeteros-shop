@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s | Cafeteros Shop",
   },
   description:
-    "Cafeteros Shop es tu tienda online de camisetas de la Selección Colombia y ropa deportiva oficial. Compra fácil, envíos a toda Colombia y pago seguro.",
+    "Compra camisetas de Colombia al mejor precio. Alta calidad, variedad de diseños y envío rápido. ¡Haz tu pedido hoy y apoya a tu selección!",
   applicationName: "Cafeteros Shop",
   keywords: [
     "cafeteros",
@@ -51,9 +51,9 @@ export const metadata: Metadata = {
     languages: { "es-CO": "/" },
   },
   icons: {
-    icon: "/icono.svg",
-    shortcut: "/icono.svg",
-    apple: "/icono.svg",
+    icon: "/iconocafeteros.svg",
+    shortcut: "/iconocafeteros.svg",
+    apple: "/iconocafeteros.svg",
   },
   openGraph: {
     type: "website",
@@ -102,7 +102,7 @@ export default function RootLayout({
     <html lang="es">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/icono.svg" type="image/svg+xml" />
+        <link rel="icon" href="/iconocafeteros.svg" type="image/svg+xml" />
         <meta name="theme-color" content="#003893" />
       </head>
       <body className={`${inter.variable} ${montserrat.variable} antialiased`}>
