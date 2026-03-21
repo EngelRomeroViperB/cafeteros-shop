@@ -1175,14 +1175,14 @@ export default function Storefront({ products, categories }: Props) {
             <div className="flex items-center gap-2 flex-wrap justify-center md:justify-end" aria-label="Métodos de pago aceptados">
               <span className="text-xs text-gray-400 mr-1">Pagos:</span>
               {[
+                { src: "/payments/americanexpress.svg", alt: "American Express" },
+                { src: "/payments/Nequi.svg", alt: "Nequi" },
+                { src: "/payments/bancolombia.svg", alt: "Bancolombia" },
                 { src: "/payments/visa.svg", alt: "Visa" },
                 { src: "/payments/mastercard.svg", alt: "Mastercard" },
-                { src: "/payments/pse.svg", alt: "PSE" },
-                { src: "/payments/Nequi.svg", alt: "Nequi" },
-                { src: "/payments/americanexpress.svg", alt: "American Express" },
               ].map((method) => (
-                <div key={method.alt} className="bg-white rounded-md px-2 py-1 border border-gray-700/70">
-                  <Image src={method.src} alt={method.alt} width={54} height={18} className="h-4 w-auto object-contain" />
+                <div key={method.alt} className="bg-white rounded-lg px-3 py-1.5 shadow-sm border border-gray-200/20 flex items-center justify-center" style={{ minWidth: 64, height: 36 }}>
+                  <Image src={method.src} alt={method.alt} width={72} height={28} className="h-6 w-auto object-contain" />
                 </div>
               ))}
             </div>

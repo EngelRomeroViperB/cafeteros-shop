@@ -16,11 +16,11 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://cafeteros.shop"),
   title: {
-    default: "Cafeteros Shop | Camisetas de la Selección Colombia y Ropa Deportiva",
+    default: "Cafeteros Shop | Tienda de Camisetas de la Selección Colombia",
     template: "%s | Cafeteros Shop",
   },
   description:
-    "Cafeteros Shop, tienda oficial online de camisetas de la Selección Colombia y ropa deportiva. Envíos a toda Colombia y pago seguro con Wompi.",
+    "Cafeteros Shop es tu tienda online de camisetas de la Selección Colombia y ropa deportiva oficial. Compra fácil, envíos a toda Colombia y pago seguro.",
   applicationName: "Cafeteros Shop",
   keywords: [
     "cafeteros",
@@ -60,9 +60,9 @@ export const metadata: Metadata = {
     locale: "es_CO",
     url: "https://cafeteros.shop",
     siteName: "Cafeteros Shop",
-    title: "Cafeteros Shop | Camisetas de la Selección Colombia 2026",
+    title: "Cafeteros Shop | Tienda Oficial de Camisetas de Colombia",
     description:
-      "Compra la nueva camiseta de la Selección Colombia para el Mundial 2026. Camisetas originales, conjuntos deportivos y envío a toda Colombia.",
+      "Compra camisetas de la Selección Colombia, conjuntos y ropa deportiva oficial en Cafeteros Shop. Envíos nacionales y pago seguro.",
     images: [
       {
         url: "/og-image.png",
@@ -74,9 +74,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Cafeteros Shop | Camisetas de Colombia 2026",
+    title: "Cafeteros Shop | Tienda de Camisetas de Colombia",
     description:
-      "Tienda online de camisetas de la Selección Colombia para el Mundial 2026. Envíos nacionales. Pago seguro.",
+      "Tienda online de camisetas de la Selección Colombia y ropa deportiva oficial. Envíos a toda Colombia.",
     images: ["/og-image.png"],
   },
   robots: {
