@@ -1172,23 +1172,6 @@ export default function Storefront({ products, categories }: Props) {
           </div>
           <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
             <p>&copy; 2026 Cafeteros Shop</p>
-            <div className="flex items-center gap-2 flex-wrap justify-center md:justify-end" aria-label="Métodos de pago aceptados">
-              <span className="text-xs text-gray-400 mr-1">Pagos:</span>
-              {[
-                { src: "/payments/americanexpress.svg", alt: "American Express" },
-                { src: "/payments/applepay.svg", alt: "Apple Pay" },
-                { src: "/payments/diners.svg", alt: "Diners Club" },
-                { src: "/payments/discover.svg", alt: "Discover" },
-                { src: "/payments/googlepay.svg", alt: "Google Pay" },
-                { src: "/payments/mastercard.svg", alt: "Mastercard" },
-                { src: "/payments/shoppay.svg", alt: "Shop Pay" },
-                { src: "/payments/visa.svg", alt: "Visa" },
-              ].map((method) => (
-                <div key={method.alt} className="bg-white rounded-md flex items-center justify-center overflow-hidden" style={{ width: 46, height: 30 }}>
-                  <Image src={method.src} alt={method.alt} width={46} height={30} className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </footer>
