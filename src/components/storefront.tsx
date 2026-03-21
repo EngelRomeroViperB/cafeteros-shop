@@ -468,19 +468,6 @@ export default function Storefront({ products, categories }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productListSchema) }}
       />
-      {/* Toast */}
-      <div
-        id="toast"
-        className={`fixed bottom-5 right-5 z-[100] transform transition-all duration-300 ${
-          toast ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0"
-        } bg-dark-bg text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 border border-gray-700`}
-      >
-        <div className="bg-green-500/20 text-green-400 p-1.5 rounded-full">
-          <Check className="w-5 h-5" />
-        </div>
-        <p className="font-medium">{toast || "ok"}</p>
-      </div>
-
       {/* Skip to content */}
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[200] focus:bg-col-yellow focus:text-col-blue focus:px-4 focus:py-2 focus:rounded-lg focus:font-bold">
         Saltar al contenido
