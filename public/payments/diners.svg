@@ -1,0 +1,7 @@
+<svg width="108" height="36" viewBox="0 0 108 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="108" height="36" rx="6" fill="white" stroke="#E0E0E0" stroke-width="1"/>
+  <circle cx="43" cy="18" r="10" fill="#004A97"/>
+  <circle cx="65" cy="18" r="10" fill="#004A97"/>
+  <ellipse cx="54" cy="18" rx="5" ry="9.2" fill="white"/>
+  <text x="54" y="33" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="5.5" font-weight="700" fill="#004A97" letter-spacing="1">DINERS CLUB</text>
+</svg>

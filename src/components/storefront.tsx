@@ -1176,13 +1176,16 @@ export default function Storefront({ products, categories }: Props) {
               <span className="text-xs text-gray-400 mr-1">Pagos:</span>
               {[
                 { src: "/payments/americanexpress.svg", alt: "American Express" },
-                { src: "/payments/Nequi.svg", alt: "Nequi" },
-                { src: "/payments/bancolombia.svg", alt: "Bancolombia" },
-                { src: "/payments/visa.svg", alt: "Visa" },
+                { src: "/payments/applepay.svg", alt: "Apple Pay" },
+                { src: "/payments/diners.svg", alt: "Diners Club" },
+                { src: "/payments/discover.svg", alt: "Discover" },
+                { src: "/payments/googlepay.svg", alt: "Google Pay" },
                 { src: "/payments/mastercard.svg", alt: "Mastercard" },
+                { src: "/payments/shoppay.svg", alt: "Shop Pay" },
+                { src: "/payments/visa.svg", alt: "Visa" },
               ].map((method) => (
-                <div key={method.alt} className="bg-white rounded-lg px-3 py-1.5 shadow-sm border border-gray-200/20 flex items-center justify-center" style={{ minWidth: 64, height: 36 }}>
-                  <Image src={method.src} alt={method.alt} width={72} height={28} className="h-6 w-auto object-contain" />
+                <div key={method.alt} className="bg-white rounded-md flex items-center justify-center overflow-hidden" style={{ width: 46, height: 30 }}>
+                  <Image src={method.src} alt={method.alt} width={46} height={30} className="w-full h-full object-cover" />
                 </div>
               ))}
             </div>
