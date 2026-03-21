@@ -135,6 +135,9 @@ export default function Storefront({ products, categories }: Props) {
   const [accountOrders, setAccountOrders] = useState<AccountOrder[]>([]);
   const [accountLoading, setAccountLoading] = useState(false);
   const [expandedAccountOrder, setExpandedAccountOrder] = useState<string | null>(null);
+  const [cancelingOrderId, setCancelingOrderId] = useState<string | null>(null);
+  const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   // Zustand cart
   const cartItems = useCart((s) => s.items);
   const addItemToCart = useCart((s) => s.addItem);
@@ -360,6 +363,40 @@ export default function Storefront({ products, categories }: Props) {
       if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 120);
   };
+  const cancelOrder = async (orderId: string) => {
+    if (!supabase) return;
+    setCancelingOrderId(orderId);
+    setConfirmCancelId(null);
+    try {
+      const session = (await supabase.auth.getSession()).data.session;
+      if (!session?.user?.id) throw new Error("No autenticado");
+      const res = await fetch(`/api/account/orders/${orderId}?userId=${session.user.id}`, { method: "PUT" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      await fetchAccountOrders();
+    } catch (err) {
+      console.error("Error al cancelar pedido:", err);
+    } finally {
+      setCancelingOrderId(null);
+    }
+  };
+
+  const retryPayment = async (orderId: string) => {
+    if (!supabase) return;
+    setPayingOrderId(orderId);
+    try {
+      const session = (await supabase.auth.getSession()).data.session;
+      if (!session?.user?.id) throw new Error("No autenticado");
+      const res = await fetch(`/api/account/orders/${orderId}/pay?userId=${session.user.id}`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      window.location.href = json.checkoutUrl;
+    } catch (err) {
+      console.error("Error al reintentar pago:", err);
+      setPayingOrderId(null);
+    }
+  };
+
   const fetchAccountOrders = async () => {
     if (!supabase) return;
     setAccountLoading(true);
@@ -1064,6 +1101,41 @@ export default function Storefront({ products, categories }: Props) {
                               <span>Fecha: <span className="text-white">{new Date(order.created_at).toLocaleString("es-CO")}</span></span>
                               <span>Estado Wompi: <span className="text-white">{order.wompi_status || "—"}</span></span>
                             </div>
+                            {order.status === "pending" && (
+                              <div className="flex gap-2 pt-1">
+                                <button
+                                  onClick={() => retryPayment(order.id)}
+                                  disabled={payingOrderId === order.id}
+                                  className="flex-1 bg-col-yellow text-col-blue font-bold py-2.5 rounded-xl text-sm hover:bg-yellow-300 transition-colors disabled:opacity-60"
+                                >
+                                  {payingOrderId === order.id ? "Redirigiendo..." : "Completar pago"}
+                                </button>
+                                {confirmCancelId === order.id ? (
+                                  <div className="flex gap-2 flex-1">
+                                    <button
+                                      onClick={() => cancelOrder(order.id)}
+                                      disabled={cancelingOrderId === order.id}
+                                      className="flex-1 bg-red-500 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-red-600 transition-colors disabled:opacity-60"
+                                    >
+                                      {cancelingOrderId === order.id ? "Cancelando..." : "Confirmar"}
+                                    </button>
+                                    <button
+                                      onClick={() => setConfirmCancelId(null)}
+                                      className="px-4 bg-gray-700 text-gray-300 font-medium py-2.5 rounded-xl text-sm hover:bg-gray-600 transition-colors"
+                                    >
+                                      No
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => setConfirmCancelId(order.id)}
+                                    className="flex-1 bg-gray-700 text-gray-300 font-medium py-2.5 rounded-xl text-sm hover:bg-gray-600 transition-colors"
+                                  >
+                                    Cancelar pedido
+                                  </button>
+                                )}
+                              </div>
+                            )}
                             <div className="space-y-2">
                               {order.items.map((item) => (
                                 <div key={item.id} className="flex items-center justify-between text-sm">
